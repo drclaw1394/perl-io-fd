@@ -586,6 +586,8 @@ bind(fd,address)
 		RETVAL
 #SOCKETPAIR
 ###########
+# TODO: 
+# How to through an exception like perl when syscall not implemented?
 
 SV*
 socketpair(fd1,fd2, domain, type, protocol)
@@ -694,16 +696,36 @@ SV*
 fcntl(fd, cmd, arg)
 	int fd
 	int cmd
-	int arg
+	SV* arg
 
 	#TODO: everything
 	INIT:
-
+		int ret;
 	CODE:
-		RETVAL=&PL_sv_undef;
+		#if arg is numeric, call with iv
+		#otherwise we pass pointers and hope for the best
+		if(SvOK(arg)){
+			if(SvIOK(arg)){
+				fprintf(stderr, "PROCESSING ARG AS NUMBER\n");
+				ret=fcntl(fd,cmd, SvIV(arg));
+			}else if(SvPOK(arg)){
+				fprintf(stderr, "PROCESSING ARG AS STRING\n");
+				ret=fcntl(fd,cmd,SvPVX(arg));
+			}
+			else {
+				#error
+				fprintf(stderr, "PROCESSING ARG AS UNKOWN\n");
+				ret=-1;
+			}
+			if(ret==-1){
+				RETVAL=&PL_sv_undef;
+			}
+			else {
+				RETVAL=newSViv(ret);
+			}
+		}
 
 	OUTPUT:
-
 		RETVAL
 
 
@@ -723,6 +745,82 @@ ioctl(fd, request, arg)
 
 	OUTPUT:
 		RETVAL
+
+#GETSOCKOPT
+############
+SV*
+getsockopt(fd, level, option, buffer) 
+	int fd
+	int level
+	int option
+	SV *buffer
+
+	INIT:
+		int ret;
+		char * buf;
+		unsigned int  len;
+
+	CODE:
+		if(!SvOK(buffer)){
+			buffer=newSV(257);
+			SvPOK_on(buffer);
+			buf=SvPVX(buffer);
+		}
+		else{
+			buf=SvGROW(buffer,257);
+		}	
+
+
+		len=256;
+		ret=getsockopt(fd,level, option, buf, &len);	
+		if(ret<0){
+			RETVAL=&PL_sv_undef;
+		}
+		else {
+			SvCUR_set(buffer, len);
+			*SvEND(buffer)='\0';
+			RETVAL=newSVsv(buffer);
+		}
+		
+
+
+	OUTPUT:
+		RETVAL
+		buffer
+
+
+#SETSOCKOPT
+###########
+SV*
+setsockopt(fd, level, option, buffer)
+	int fd
+	int level
+	int option
+	SV* buffer;
+
+	INIT:
+		int ret;
+		char  *buf;
+		unsigned int len;
+
+
+	CODE:
+		if(SvOK(buffer)&&SvPOK(buffer)){
+			len=SvCUR(buffer);
+			buf=SvPVX(buffer);
+			ret=setsockopt(fd,level,option,buf, len);
+			RETVAL=newSViv(ret+1);
+		}
+		else{
+			RETVAL=&PL_sv_undef;
+		}	
+
+
+		
+
+	OUTPUT:
+		RETVAL
+
 
 #SELECT
 #######
@@ -863,8 +961,6 @@ readline(fd)
 
 		}
 
-		#EXTEND(SP,1);
-		#PUSHs(sv_2mortal(newSViv(10)));
 
 #Naming
 # IO::FD::sysread for example mimics the perl sysread
