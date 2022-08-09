@@ -52,6 +52,8 @@ MODULE = IO::FD		PACKAGE = IO::FD
 
 INCLUDE: const-xs.inc
 
+#SOCKET
+#######
 
 SV* 
 socket(sock,af,type,proto)
@@ -79,6 +81,8 @@ socket(sock,af,type,proto)
 			RETVAL
 			sock
 
+#ACCEPT
+#######
 
 int
 accept(new_fd, listen_fd)
@@ -99,6 +103,8 @@ accept(new_fd, listen_fd)
                 OUTPUT:
 			RETVAL
 			new_fd
+#CONNECT
+########
 
 SV*
 connect(fd,address)
@@ -121,10 +127,38 @@ connect(fd,address)
 	OUTPUT:
 		RETVAL
 		
+#SYSOPEN
+########
+
+SV*
+sysopen(fd, path, mode, ... )
+ 		int fd
+                char *path
+                int mode
+
+		PREINIT:
+			int f;
+                	int permissions=0666;	//Default if not provided
+
+		CODE:
+			if(items==4){
+				permissions=SvIV(ST(3));
+			}
+			fd=open(path, mode, permissions);
+			if(fd<0){
+				RETVAL=&PL_sv_undef;
+			}
+			else{
+				RETVAL=newSViv(fd);
+			}
+
+		OUTPUT:
+			RETVAL
+			fd
 
 
 SV*
-sysopen(fd, path, mode, permissions)
+sysopen4(fd, path, mode, permissions)
  		int fd
                 char *path
                 int mode
@@ -145,7 +179,8 @@ sysopen(fd, path, mode, permissions)
 		OUTPUT:
 			RETVAL
 			fd
-
+#CLOSE
+######
 
 SV*
 close(fd)
@@ -167,8 +202,115 @@ close(fd)
 	OUTPUT:
 		RETVAL
 
+
+
+#SYSREAD
+########
+
 SV*
-sysread(fd, data, len, offset)
+sysread(fd, data, ...)
+                int fd;
+                SV* data
+
+		INIT:
+			int ret;
+			char *buf;
+			int len;
+			int offset;
+
+                CODE:
+			//TODO: allow unspecified len and offset
+
+			//grow scalar to fit potental read
+
+			if(items >=4 ){
+				len=SvIOK(ST(2))?SvIV(ST(2)):0;
+				offset=SvIOK(ST(3))?SvIV(ST(3)):0;
+			}
+			else if(items ==3){
+				len=SvIOK(ST(2))?SvIV(ST(2)):0;
+				offset=0;
+			}
+			else {
+				len=SvOK(data)?SvCUR(data):0;
+				offset=0;
+			}
+				
+			int data_len=sv_len(data);
+			int request_len;
+			if(offset<0){
+				offset=data_len-offset;
+			}
+			else{
+
+			}
+			request_len=len+offset;
+
+			fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			fprintf(stderr, "Length of request is: %d\n", request_len);
+			#buf= (data_len<request_len)?(Sv_GROW(data, request_len+1)) :(sv_pv(data));
+
+			buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
+
+			data_len=sv_len(data);
+			fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#TODO: fill with nulls if offset past end of original data
+					
+			buf+=offset;
+
+                        ret=read(fd, buf, len);
+			if(ret<0){
+
+				RETVAL=&PL_sv_undef;
+			}
+			else {
+				buf[ret]='\0';
+				SvCUR_set(data,ret+offset);
+				RETVAL=newSViv(ret);
+			}
+
+		OUTPUT:
+			RETVAL
+
+SV*
+sysread3(fd, data, len)
+                int fd;
+                SV* data
+                int len
+
+		INIT:
+			int ret;
+			char *buf;
+			int offset;
+
+                CODE:
+			int data_len=sv_len(data);
+
+			fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			fprintf(stderr, "Length of request is: %d\n",len);
+
+			buf = SvPOK(data) ? SvGROW(data,len+1) : 0;
+
+			data_len=sv_len(data);
+			fprintf(stderr, "Length of buffer is: %d\n", data_len);
+					
+
+                        ret=read(fd, buf, len);
+			if(ret<0){
+
+				RETVAL=&PL_sv_undef;
+			}
+			else {
+				buf[ret]='\0';
+				SvCUR_set(data,ret);
+				RETVAL=newSViv(ret);
+			}
+
+		OUTPUT:
+			RETVAL
+
+SV*
+sysread4(fd, data, len, offset)
                 int fd;
                 SV* data
                 int len
@@ -218,8 +360,139 @@ sysread(fd, data, len, offset)
 		OUTPUT:
 			RETVAL
 
+#SYSWRITE 
+##########
+
 SV*
-syswrite(fd,data,len,offset)
+syswrite(fd,data,...)
+	int fd
+	SV* data
+
+	INIT:
+		int ret;
+		char *buf;
+		STRLEN max=SvCUR(data);
+		int len;
+		int offset;
+	CODE:
+		if(items >=4 ){
+			//length and  Offset provided
+			len=SvIOK(ST(2))?SvIV(ST(2)):0;
+			offset=SvIOK(ST(3))?SvIV(ST(3)):0;
+			
+		}
+		else if(items == 3){
+			//length provided	
+			len=SvIOK(ST(2))?SvIV(ST(2)):0;
+			offset=0;
+		}
+		else{
+			//no length or offset
+			len=SvCUR(data);
+			offset=0;
+		}
+
+		#TODO: fix negative offset processing
+		#TODO: allow unspecified len and offset
+
+		fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+		offset=
+			offset>max
+				?max
+				:offset;
+
+		if((offset+len)>max){
+			len=max-offset;
+		}
+		
+		buf=sv_pv(data);
+		buf+=offset;
+		ret=write(fd,buf,len);
+		fprintf(stderr, "write consumed %d bytes\n", ret);	
+		if(ret<0){
+			RETVAL=&PL_sv_undef;	
+		}
+		else{
+			RETVAL=newSViv(ret);
+		}
+
+	OUTPUT:
+		RETVAL
+
+SV*
+syswrite2(fd,data)
+	int fd
+	SV* data
+
+	INIT:
+		int ret;
+		char *buf;
+		STRLEN max=SvCUR(data);
+		int offset=0;
+		int len;
+	CODE:
+
+		len=SvIOK(data)?SvIV(data):0;
+		#TODO: fix negative offset processing
+		#TODO: allow unspecified len and offset
+
+		fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+
+		if(len>max){
+			len=max;
+		}
+		
+		buf=sv_pv(data);
+		ret=write(fd,buf,len);
+		fprintf(stderr, "write consumed %d bytes\n", ret);	
+		if(ret<0){
+			RETVAL=&PL_sv_undef;	
+		}
+		else{
+			RETVAL=newSViv(ret);
+		}
+
+	OUTPUT:
+		RETVAL
+
+SV*
+syswrite3(fd,data,len)
+	int fd
+	SV* data
+	int len
+
+	INIT:
+		int ret;
+		char *buf;
+		STRLEN max=SvCUR(data);
+		int offset=0;
+	CODE:
+
+		#TODO: fix negative offset processing
+		#TODO: allow unspecified len and offset
+
+		fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+
+		if(len>max){
+			len=max;
+		}
+		
+		buf=sv_pv(data);
+		ret=write(fd,buf,len);
+		fprintf(stderr, "write consumed %d bytes\n", ret);	
+		if(ret<0){
+			RETVAL=&PL_sv_undef;	
+		}
+		else{
+			RETVAL=newSViv(ret);
+		}
+
+	OUTPUT:
+		RETVAL
+
+
+SV*
+syswrite4(fd,data,len,offset)
 	int fd
 	SV* data
 	int len
@@ -259,6 +532,9 @@ syswrite(fd,data,len,offset)
 		RETVAL
 
 
+#PIPE
+######
+
 SV*
 pipe(read_end,write_end)
 	int read_end
@@ -284,9 +560,12 @@ pipe(read_end,write_end)
 		RETVAL
 		read_end
 		write_end
-	
+
+#BIND
+#####
+
 SV*
-sysbind(fd,address)
+bind(fd,address)
 	int fd
 	SV*address
 	
@@ -305,6 +584,8 @@ sysbind(fd,address)
 	
 	OUTPUT:
 		RETVAL
+#SOCKETPAIR
+###########
 
 SV*
 socketpair(fd1,fd2, domain, type, protocol)
@@ -335,6 +616,8 @@ socketpair(fd1,fd2, domain, type, protocol)
 		fd1
 		fd2
 
+#SYSSEEK
+########
 
 SV*
 sysseek(fd,offset,whence)
@@ -358,6 +641,8 @@ sysseek(fd,offset,whence)
 	OUTPUT:
 		RETVAL
 
+#DUP
+####
 
 SV*
 dup(fd)
@@ -379,6 +664,9 @@ dup(fd)
 		RETVAL
 
 
+#DUP2
+#####
+
 SV*
 dup2(fd1,fd2)
 	int fd1
@@ -399,6 +687,8 @@ dup2(fd1,fd2)
 	OUTPUT:
 
 		RETVAL
+#FCNTL
+######
 
 SV*
 fcntl(fd, cmd, arg)
@@ -417,6 +707,9 @@ fcntl(fd, cmd, arg)
 		RETVAL
 
 
+#IOCTL
+######
+
 SV*
 ioctl(fd, request, arg)
 	int fd
@@ -431,6 +724,8 @@ ioctl(fd, request, arg)
 	OUTPUT:
 		RETVAL
 
+#SELECT
+#######
 
 SV*
 select(read, write, error, timeout)
@@ -458,16 +753,28 @@ select(read, write, error, timeout)
 		write
 		error
 
+#MKSTEMP
+########
 
-int
+SV*
 mkstemp(template)
 	char *template
 
+	INIT:
+		int ret;
 	CODE:
-		RETVAL=mkstemp(template);
+		ret=mkstemp(template);
+		if(ret<0){
+			RETVAL=&PL_sv_undef;
+		}	
+		else{
+			RETVAL=newSViv(ret);
+		}
 
 	OUTPUT:
 		RETVAL
+#MKTEMP
+#######
 
 SV*
 mktemp(template)
