@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <poll.h>
 
 
 //Read from an fd until eof or error condition
@@ -57,24 +58,31 @@ INCLUDE: const-xs.inc
 
 SV* 
 socket(sock,af,type,proto)
-		int sock;
+		SV* sock;
 		int af
 		int type
 		int proto
 
 		PREINIT:
 			int fd;
+			int s;
 		CODE:
-			sock=socket(af, type, proto);
+			s=socket(af, type, proto);
 
 			//Set error variable...
-			if(sock<0){
+			if(s<0){
 				
 				RETVAL=&PL_sv_undef;
 				#need to set error code here
 			}
 			else{
-				RETVAL=newSViv(sock);
+				RETVAL=newSViv(s);
+				if(SvOK(sock)){
+					sv_setiv(sock,s);
+				}
+				else {
+					sock=newSViv(s);
+				}
 			}
 
 		OUTPUT:
@@ -132,7 +140,7 @@ connect(fd,address)
 
 SV*
 sysopen(fd, path, mode, ... )
- 		int fd
+ 		SV* fd
                 char *path
                 int mode
 
@@ -144,12 +152,18 @@ sysopen(fd, path, mode, ... )
 			if(items==4){
 				permissions=SvIV(ST(3));
 			}
-			fd=open(path, mode, permissions);
-			if(fd<0){
+			f=open(path, mode, permissions);
+			if(f<0){
 				RETVAL=&PL_sv_undef;
 			}
 			else{
-				RETVAL=newSViv(fd);
+				RETVAL=newSViv(f);
+				if(SvOK(fd)){
+					sv_setiv(fd,f);
+				}
+				else {
+					fd= newSViv(f);
+				}
 			}
 
 		OUTPUT:
@@ -246,14 +260,13 @@ sysread(fd, data, ...)
 			}
 			request_len=len+offset;
 
-			fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			fprintf(stderr, "Length of request is: %d\n", request_len);
-			#buf= (data_len<request_len)?(Sv_GROW(data, request_len+1)) :(sv_pv(data));
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#fprintf(stderr, "Length of request is: %d\n", request_len);
 
 			buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
 
 			data_len=sv_len(data);
-			fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
 			#TODO: fill with nulls if offset past end of original data
 					
 			buf+=offset;
@@ -286,13 +299,13 @@ sysread3(fd, data, len)
                 CODE:
 			int data_len=sv_len(data);
 
-			fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			fprintf(stderr, "Length of request is: %d\n",len);
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#fprintf(stderr, "Length of request is: %d\n",len);
 
 			buf = SvPOK(data) ? SvGROW(data,len+1) : 0;
 
 			data_len=sv_len(data);
-			fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
 					
 
                         ret=read(fd, buf, len);
@@ -334,14 +347,13 @@ sysread4(fd, data, len, offset)
 			}
 			request_len=len+offset;
 
-			fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			fprintf(stderr, "Length of request is: %d\n", request_len);
-			#buf= (data_len<request_len)?(Sv_GROW(data, request_len+1)) :(sv_pv(data));
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#fprintf(stderr, "Length of request is: %d\n", request_len);
 
 			buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
 
 			data_len=sv_len(data);
-			fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
 			#TODO: fill with nulls if offset past end of original data
 					
 			buf+=offset;
@@ -395,7 +407,7 @@ syswrite(fd,data,...)
 		#TODO: fix negative offset processing
 		#TODO: allow unspecified len and offset
 
-		fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
 		offset=
 			offset>max
 				?max
@@ -408,7 +420,7 @@ syswrite(fd,data,...)
 		buf=sv_pv(data);
 		buf+=offset;
 		ret=write(fd,buf,len);
-		fprintf(stderr, "write consumed %d bytes\n", ret);	
+		#fprintf(stderr, "write consumed %d bytes\n", ret);	
 		if(ret<0){
 			RETVAL=&PL_sv_undef;	
 		}
@@ -436,7 +448,7 @@ syswrite2(fd,data)
 		#TODO: fix negative offset processing
 		#TODO: allow unspecified len and offset
 
-		fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
 
 		if(len>max){
 			len=max;
@@ -444,7 +456,7 @@ syswrite2(fd,data)
 		
 		buf=sv_pv(data);
 		ret=write(fd,buf,len);
-		fprintf(stderr, "write consumed %d bytes\n", ret);	
+		#fprintf(stderr, "write consumed %d bytes\n", ret);	
 		if(ret<0){
 			RETVAL=&PL_sv_undef;	
 		}
@@ -471,7 +483,7 @@ syswrite3(fd,data,len)
 		#TODO: fix negative offset processing
 		#TODO: allow unspecified len and offset
 
-		fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
 
 		if(len>max){
 			len=max;
@@ -479,7 +491,7 @@ syswrite3(fd,data,len)
 		
 		buf=sv_pv(data);
 		ret=write(fd,buf,len);
-		fprintf(stderr, "write consumed %d bytes\n", ret);	
+		#fprintf(stderr, "write consumed %d bytes\n", ret);	
 		if(ret<0){
 			RETVAL=&PL_sv_undef;	
 		}
@@ -507,7 +519,7 @@ syswrite4(fd,data,len,offset)
 		#TODO: fix negative offset processing
 		#TODO: allow unspecified len and offset
 
-		fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
 		offset=
 			offset>max
 				?max
@@ -520,7 +532,7 @@ syswrite4(fd,data,len,offset)
 		buf=sv_pv(data);
 		buf+=offset;
 		ret=write(fd,buf,len);
-		fprintf(stderr, "write consumed %d bytes\n", ret);	
+		#fprintf(stderr, "write consumed %d bytes\n", ret);	
 		if(ret<0){
 			RETVAL=&PL_sv_undef;	
 		}
@@ -537,8 +549,8 @@ syswrite4(fd,data,len,offset)
 
 SV*
 pipe(read_end,write_end)
-	int read_end
-	int write_end
+	SV* read_end
+	SV* write_end
 
 	INIT:
 		int ret;
@@ -553,8 +565,19 @@ pipe(read_end,write_end)
 		else{
 			#pipe returns 0 on success...
 			RETVAL=newSViv(ret+1);
-			read_end=fds[0];
-			write_end=fds[1];
+			if(SvOK(read_end)){
+				sv_setiv(read_end, fds[0]);
+			}
+			else {
+				read_end=newSViv(fds[0]);
+			}
+
+			if(SvOK(write_end)){
+				sv_setiv(write_end,fds[1]);
+			}
+			else {
+				write_end=newSViv(fds[1]);
+			}
 		}
 	OUTPUT:
 		RETVAL
@@ -706,15 +729,15 @@ fcntl(fd, cmd, arg)
 		#otherwise we pass pointers and hope for the best
 		if(SvOK(arg)){
 			if(SvIOK(arg)){
-				fprintf(stderr, "PROCESSING ARG AS NUMBER\n");
+				#fprintf(stderr, "PROCESSING ARG AS NUMBER\n");
 				ret=fcntl(fd,cmd, SvIV(arg));
 			}else if(SvPOK(arg)){
-				fprintf(stderr, "PROCESSING ARG AS STRING\n");
+				#fprintf(stderr, "PROCESSING ARG AS STRING\n");
 				ret=fcntl(fd,cmd,SvPVX(arg));
 			}
 			else {
 				#error
-				fprintf(stderr, "PROCESSING ARG AS UNKOWN\n");
+				#fprintf(stderr, "PROCESSING ARG AS UNKOWN\n");
 				ret=-1;
 			}
 			if(ret==-1){
@@ -826,30 +849,124 @@ setsockopt(fd, level, option, buffer)
 #######
 
 SV*
-select(read, write, error, timeout)
-	AV* read
-	AV* write
-	AV* error
+select(readvec, writevec, errorvec, tout)
+	SV* readvec
+	SV* writevec
+	SV* errorvec
 	#Perl timeout is in fractional seconds
-	double timeout	
+	SV* tout	
 
 
 	INIT:
-
+		fd_set *r;
+		fd_set *w;
+		fd_set *e;
+		struct timeval timeout;
+		int size=sizeof(fd_set)+1;
+		double tval;
+		int ret;
+		int nfds=0;
 
 	CODE:
-		#convert the arrays to bit string using build in macros
-	
-		#Do select. max fd found during looping of input fds above
+		//Ensure the vector can fit a fd_set	
+		//TODO: Need to make sure its null filled too
+		//
+		if(SvOK(readvec)){
+			r=(fd_set *)SvGROW(readvec,size);
+			nfds=SvCUR(readvec)>nfds?SvCUR(readvec) : nfds;
+		}
+		else {
+			r=NULL;
+		}
 
-		#Check bit field locations for in resulting bit strings (using FD_ISSET). Add to output array if set
+		if(SvOK(writevec)){
+			w=(fd_set *)SvGROW(writevec,size);
+			nfds=SvCUR(writevec)>nfds?SvCUR(writevec) : nfds;
+		}
+		else {
+			w=NULL;
+		}
+
+		if(SvOK(errorvec)){
+			e=(fd_set *)SvGROW(errorvec,size);
+			nfds=SvCUR(errorvec)>nfds?SvCUR(errorvec) : nfds;
+		}
+		else {
+			e=NULL;
+		}
+
+		nfds*=8;	//convert string (byte) length to bit length
+		if(SvOK(tout) && SvNOK(tout)){
+			//Timeout value provided in fractional seconds
+			tval=SvNV(tout);
+			timeout.tv_sec=(int) tval;
+			tval-=timeout.tv_sec;
+			tval*=1000000;
+			timeout.tv_usec=(int) tval;
+			
+			ret=select(nfds,r,w,e,&timeout);
+		}
+
+		else{
+			//Timeout is non a number
+			ret=select(nfds,r,w,e, NULL);
+		}
+		if(ret<0){
+			//Undef on error
+			RETVAL=&PL_sv_undef;
+		}
+		else{
+			//0 on timeout expired
+			//>0 number of found fds to test
+			RETVAL=newSViv(ret);
+		}
+
 
 	OUTPUT:
 
 		RETVAL
-		read
-		write
-		error
+		readvec
+		writevec
+		errorvec
+
+#POLL
+#####
+SV*
+poll (poll_list, s_timeout)
+	SV* poll_list;
+	double s_timeout;
+	INIT:
+
+		int sz=sizeof(struct pollfd);
+		int count;	
+		int ret;
+	CODE:
+		if(SvOK(poll_list) && SvPOK(poll_list)){
+			count=SvCUR(poll_list)/sz;	 //Number of items in array
+			//TODO: croak if not fully divisible
+			ret=poll((struct pollfd *)SvPVX(poll_list), count, (int)s_timeout*1000);
+		}
+		else {
+			ret=poll(NULL,0,(int)s_timeout*1000);
+		}
+		if(ret<0){
+			RETVAL=&PL_sv_undef;
+		}
+		else{
+			RETVAL=newSViv(ret);
+
+		}
+	
+	
+		//No length of list is required as we use the smallest multiple of sizeof(struct pollfd) which will fit in  the poll list
+
+	OUTPUT:
+
+		RETVAL
+		poll_list
+
+
+
 
 #MKSTEMP
 ########
