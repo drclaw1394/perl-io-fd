@@ -188,6 +188,13 @@ Any differences are listed.
 
 =head2 Perlish API
 
+=head3 getsockopt
+
+
+=head3 setsockopt
+
+Note: Implements the integer shorthand as per perldoc -f setsockopt
+
 =head3 sysread
 
 =head3 syswrite
@@ -208,7 +215,6 @@ An alias of close
 
 =head3 sysseek
 
-=head3 select
 
 Only the 4 argument version of select is supported.
 

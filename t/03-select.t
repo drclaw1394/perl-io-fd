@@ -17,7 +17,7 @@ for(0..10){
 	vec($rvec, $read,1)=1;	#
 	vec($wvec, $write,1)=1;
 	
-	my $count=IO::FD::select( $rvec, $wvec, undef, 1);
+	my $count=select( $rvec, $wvec, undef, 1);
 	say STDERR "COUNT fds ready $count";
 	say STDERR "Read: ",unpack "B*", $rvec;
 	say STDERR "Write: ",unpack "B*", $wvec;

@@ -1,4 +1,4 @@
-use Test::More tests=>14;
+use Test::More tests=>11;
 
 use IO::FD;
 use Fcntl;
@@ -41,15 +41,6 @@ use Fcntl;
 	#seek back to start
 	ok defined(IO::FD::sysseek($fd,0,0)), "Seek file";
 
-	#Read with 3 argument sysread
-	my $input="";
-	ok defined(IO::FD::sysread3($fd,$input,20)), "3 argument sysread";
-
-	#Compare
-	ok $input eq $buffer, "Input and output ok";
-
-	#seek again
-	ok defined(IO::FD::sysseek($fd,0,0)), "Seek file";
 
 	#Read with general sysread
 	$input="";

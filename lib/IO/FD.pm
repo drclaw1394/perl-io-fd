@@ -18,7 +18,44 @@ our @ISA = qw(Exporter);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
-	
+	accept
+	listen
+	socket
+	bind
+	connect
+
+	sysopen
+	sysopen4
+	close
+
+	sysread
+	sysread4
+
+	syswrite
+	syswrite2
+	syswrite3
+	syswrite4
+
+	pipe
+	socketpair
+	sysseek
+
+	dup
+	dup2
+
+	fcntl
+	ioctl
+
+	getsockopt
+	setsockopt
+	select
+	poll
+
+	mkstemp
+	mktemp
+
+	readline
+	fileno
 ) ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -28,6 +65,13 @@ our @EXPORT = qw(
 );
 
 our $VERSION = '0.01';
+
+
+sub fileno :prototype($) {
+	ref($_[0])
+		?fileno $_[0]
+		: $_[0];
+}
 
 sub AUTOLOAD {
     # This AUTOLOAD is used to 'autoload' constants from the constant()
