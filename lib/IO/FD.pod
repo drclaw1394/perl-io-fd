@@ -2,6 +2,8 @@
 
 IO::FD - I/O with less setup overhead
 
+STILL A WORK IN PROGRESS
+
 =head1 SYNOPSIS
 
 Create and bind a socket (server):
