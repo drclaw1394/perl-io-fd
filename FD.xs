@@ -125,19 +125,23 @@ accept(new_fd, listen_fd)
                 int listen_fd
 
                 PREINIT:
-                        struct sockaddr packed_addr;
-                        socklen_t       len;
+                        struct sockaddr *packed_addr;
                         int ret;
-			SV *addr;	
+			SV *addr=newSV(sizeof(struct sockaddr));
+			struct sockaddr *buf=(struct sockaddr *)SvPVX(addr);
+			unsigned int len=sizeof(struct sockaddr);
+
 			
 
                 CODE:
-                ret=accept(listen_fd, &packed_addr, &len);
+                ret=accept(listen_fd, buf, &len);
 		if(ret<0){
 			RETVAL=&PL_sv_undef;
 		}
 		else {
-			RETVAL=newSViv(ret);
+			SvPOK_on(addr);
+			SvCUR_set(addr,sizeof(struct sockaddr));
+			RETVAL=addr;
 			if(SvOK(new_fd)){
 				sv_setiv(new_fd, ret);		
 			}
@@ -160,8 +164,8 @@ connect(fd, address)
 
 	PREINIT:
 		int ret;
-		int len=SvOK(address)?SvLEN(address):0;
-		struct sockaddr *addr=(struct sockaddr *)sv_pv(address);
+		int len=SvOK(address)?SvCUR(address):0;
+		struct sockaddr *addr=(struct sockaddr *)SvPVX(address);
 
 	CODE:
 
@@ -317,44 +321,42 @@ sysread(fd, data, len, ...)
 		OUTPUT:
 			RETVAL
 
-	####################################################################################
-	# SV*                                                                              #
-	# sysread3(fd, data, len)                                                          #
-	#                 int fd;                                                          #
-	#                 SV* data                                                         #
-	#                 int len                                                          #
-	#                                                                                  #
-	#                 INIT:                                                            #
-	#                         int ret;                                                 #
-	#                         char *buf;                                               #
-	#                         int offset;                                              #
-	#                                                                                  #
-	#                 CODE:                                                            #
-	#                         int data_len=sv_len(data);                               #
-	#                                                                                  #
-	#                         #fprintf(stderr, "Length of buffer is: %d\n", data_len); #
-	#                         #fprintf(stderr, "Length of request is: %d\n",len);      #
-	#                                                                                  #
-	#                         buf = SvPOK(data) ? SvGROW(data,len+1) : 0;              #
-	#                                                                                  #
-	#                         data_len=sv_len(data);                                   #
-	#                         #fprintf(stderr, "Length of buffer is: %d\n", data_len); #
-	#                                                                                  #
-	#                                                                                  #
-	#                         ret=read(fd, buf, len);                                  #
-	#                         if(ret<0){                                               #
-	#                                                                                  #
-	#                                 RETVAL=&PL_sv_undef;                             #
-	#                         }                                                        #
-	#                         else {                                                   #
-	#                                 buf[ret]='\0';                                   #
-	#                                 SvCUR_set(data,ret);                             #
-	#                                 RETVAL=newSViv(ret);                             #
-	#                         }                                                        #
-	#                                                                                  #
-	#                 OUTPUT:                                                          #
-	#                         RETVAL                                                   #
-	####################################################################################
+SV*
+sysread3(fd, data, len)
+		int fd;
+		SV* data
+		int len
+
+		INIT:
+			int ret;
+			char *buf;
+			int offset;
+
+		CODE:
+			int data_len=SvCUR(data);
+
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			#fprintf(stderr, "Length of request is: %d\n",len);
+
+			buf = SvPOK(data) ? SvGROW(data,len+1) : 0;
+
+			//data_len=SvPVX(data);
+			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
+
+
+			ret=read(fd, buf, len);
+			if(ret<0){
+
+				RETVAL=&PL_sv_undef;
+			}
+			else {
+				buf[ret]='\0';
+				SvCUR_set(data,ret);
+				RETVAL=newSViv(ret);
+			}
+
+		OUTPUT:
+			RETVAL
 
 SV*
 sysread4(fd, data, len, offset)
@@ -451,7 +453,7 @@ syswrite(fd,data,...)
 			len=max-offset;
 		}
 		
-		buf=sv_pv(data);
+		buf=SvPVX(data);
 		buf+=offset;
 		ret=write(fd, buf, len);
 		#fprintf(stderr, "write consumed %d bytes\n", ret);	
@@ -483,7 +485,7 @@ syswrite2(fd,data)
 		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
 
 		
-		buf=sv_pv(data);
+		buf=SvPVX(data);
 		ret=write(fd, buf, len);
 		if(ret<0){
 			RETVAL=&PL_sv_undef;	
@@ -517,7 +519,7 @@ syswrite3(fd,data,len)
 			len=max;
 		}
 		
-		buf=sv_pv(data);
+		buf=SvPVX(data);
 		ret=write(fd,buf,len);
 		#fprintf(stderr, "write consumed %d bytes\n", ret);	
 		if(ret<0){
@@ -557,7 +559,7 @@ syswrite4(fd,data,len,offset)
 			len=max-offset;
 		}
 		
-		buf=sv_pv(data);
+		buf=SvPVX(data);
 		buf+=offset;
 		ret=write(fd,buf,len);
 		#fprintf(stderr, "write consumed %d bytes\n", ret);	
@@ -623,10 +625,10 @@ bind(fd, address)
 	INIT:
 		int ret;
 		int len=SvOK(address)?SvCUR(address):0;
-		struct sockaddr *addr=(struct sockaddr *)sv_pv(address);
+		struct sockaddr *addr=(struct sockaddr *)SvPVX(address);
 	CODE:
-		fprintf(stderr, "bind fd: %d\n",fd);
-		fprintf(stderr, "bind len: %d\n",len);
+		//fprintf(stderr, "bind fd: %d\n",fd);
+		//fprintf(stderr, "bind len: %d\n",len);
 		ret=bind(fd, addr, len);
 		if(ret<0){
 			RETVAL=&PL_sv_undef;
@@ -1330,14 +1332,8 @@ readline(fd)
 
 
 #Naming
-# IO::FD::sysread for example mimics the perl sysread
-# IO::FD::read for example is a direct API mapping to the os read function	
 
 #TODO:
-# DONE socketpair	=> perl uses tcp if unix sockets not supported?
-# DONE seek
-# DONE dup and dup2
-# TODO fcntl
 # TODO ioctl
 # poll
 # select ... perl compatiable version

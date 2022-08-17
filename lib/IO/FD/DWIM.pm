@@ -99,6 +99,12 @@ sub getsockopt:prototype($$$)
 sub setsockopt:prototype($$$$) 
 	{ref($_[0]) ? &CORE::setsockopt : &IO::FD::setsockopt; }
 
+sub getpeername:prototype($) 
+	{ref($_[0]) ? &CORE::getpeername : &IO::FD::getpeername; }
+
+sub getsockname:prototype($) 
+	{ref($_[0]) ? &CORE::getsockname : &IO::FD::getsockname; }
+
 sub fileno :prototype($) {
 	ref($_[0])
 		?fileno $_[0]
