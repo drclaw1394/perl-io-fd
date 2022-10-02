@@ -1373,6 +1373,7 @@ stat(target)
 		}
 
 
+#if defined(__DARWIN__) || defined(__BSD__)
 SV *
 kqueue()
 
@@ -1466,6 +1467,7 @@ pack_kevent(ident,filter,flags,fflags,data,udata)
 	OUTPUT:
 		RETVAL
 
+#endif
 
 SV * 
 clock_gettime_monotonic()
