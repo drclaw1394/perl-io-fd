@@ -29,16 +29,17 @@ ok defined( $kq), "Create a queue";
      #############################################################################
 
      #use constant KPACK64=>"(QsSLqq)*";
-say STDERR unpack "H*", my $struct=pack(KEVENT_PACKER, fileno(STDOUT), EVFILT_WRITE,EV_ADD|EV_ENABLE,0,0,0); 
+     #say STDERR unpack "H*", 
+     my $struct=pack(KEVENT_PACKER, fileno(STDOUT), EVFILT_WRITE,EV_ADD|EV_ENABLE,0,0,0); 
 
-say STDERR length $struct;
+     #say STDERR length $struct;
 my $results=IO::FD::SV(32*10);
 
 my $ret=IO::FD::kevent($kq, $struct, $results, 1);
 $struct="";
 for(1..5){
 	my $ret=IO::FD::kevent($kq, $struct, $results, 1);
-	say STDERR "kevent return : $ret  length of event list: ". length $results;
+	#say STDERR "kevent return : $ret  length of event list: ". length $results;
 	#say STDERR join ", ", my @r=unpack KEVENT_PACKER, $results;
 	#syswrite STDOUT,"x" x $r[4];
 }

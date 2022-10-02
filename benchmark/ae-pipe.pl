@@ -13,6 +13,7 @@ use AnyEvent;
 my $limit=1000000;
 my $data="x" x (4096);
 {
+	say "Filehandles";
 	my $start=time;
 	my $cv=AE::cv;
 	my $rcounter=0;
@@ -42,6 +43,7 @@ my $data="x" x (4096);
 	say "TIME: ", $end-$start;
 }
 {
+	say "IO::FD";
 	my $start=time;
 	my $cv=AE::cv;
 	my $rcounter=0;

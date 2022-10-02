@@ -586,6 +586,8 @@ pipe(read_end,write_end)
 	SV* read_end
 	SV* write_end
 
+	ALIAS: syspipe=1
+
 	INIT:
 		int ret;
 		int fds[2];
@@ -626,6 +628,8 @@ bind(fd, address)
 	int fd
 	SV*address
 	
+	ALIAS: sysbind=1
+
 	INIT:
 		int ret;
 		int len=SvOK(address)?SvCUR(address):0;
@@ -758,6 +762,8 @@ fcntl(fd, cmd, arg)
 	SV* arg
 
 	#TODO: everything
+
+	ALIAS: sysfctrl=1
 	INIT:
 		int ret;
 	CODE:
@@ -797,6 +803,7 @@ ioctl(fd, request, arg)
 	int request
 	int arg
 
+	ALIAS: sysioctl=1
 	INIT:
 
 	CODE:
@@ -1293,7 +1300,6 @@ stat(target)
 			
 			len=SvCUR(target);
 			Newx(path, len+1, char); 	//Allocate plus null
-			//sv_dump(target);
 			Copy(SvPV_nolen(target), path, len, char);	//Copy
 			*(path+len)='\0';	//set null	
 			switch(ix){
@@ -1318,7 +1324,7 @@ stat(target)
 		if(ret>=0){
 			switch(GIMME_V){
 				case G_ARRAY:
-					fprintf(stderr , "ARRAY CONTEXT. no error\n");
+					//fprintf(stderr , "ARRAY CONTEXT. no error\n");
 					atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
 					mtime=buf.st_mtimespec.tv_sec+buf.st_mtimespec.tv_nsec*1e-9;
 					ctime=buf.st_ctimespec.tv_sec+buf.st_ctimespec.tv_nsec*1e-9;
@@ -1346,8 +1352,9 @@ stat(target)
 					break;
 				case G_SCALAR:
 				default:
-					fprintf(stderr , "SCALAR CONTEXT. no error\n");
-					mPUSHs(newSViv(1));
+					//fprintf(stderr , "SCALAR CONTEXT. no error\n");
+					mXPUSHs(newSViv(1));
+					XSRETURN(1);
 					break;
 			}
 
@@ -1372,9 +1379,6 @@ kqueue()
 	INIT:
 		int ret;
 	CODE:
-		fprintf(stderr, "sizeof struct kevent %lu\n", sizeof(struct kevent));
-		fprintf(stderr, "sizeof struct pollfd%lu\n", sizeof(struct pollfd));
-		fprintf(stderr, "sizeof uintptr_t %lu\n", sizeof(uintptr_t));
 		ret=kqueue();
 		if(ret<0){
 			RETVAL=&PL_sv_undef;
@@ -1515,15 +1519,13 @@ SV(size)
 
 	CODE:
 		RETVAL=newSV(size);
-		SvPOK_on(RETVAL);
+		
+		//SvPOK_on(RETVAL);
+		SvPVCLEAR(RETVAL);
 	OUTPUT:
 		RETVAL
 
 #TODO
-#getpeername
-#getsockname
-#stat
-#lstat
 
 #readline
 #readinput based on $\ seperator. use get_sv function??

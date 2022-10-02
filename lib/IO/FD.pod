@@ -81,10 +81,9 @@ Advanced:
 
 =head1 DESCRIPTION
 
-IO::FD implements core I/O operations on B<file descriptors> instead of perl
-B<file handles>. Where it makes sense the interface to each routine matches
-that of perl's filehandle routines, but uses the systems B<file descriptor>
-instead of Perl's B<file handle>.
+IO::FD implements system I/O operations on B<file descriptors> instead of perl
+B<file handles>. Where it makes sense, the interface to each routine matches
+that of perl's filehandle routines.
 
 For example:
 
@@ -100,38 +99,42 @@ It is relatively straight forward to substitute in C<IO::FD> in places where
 C<socket>, C<select>, C<accept>, C<bind>, C<sysopen>, C<sysread>,C<syswrite>
 and C<close> are used.
 
-The main reason you should consider using this module is the increased rate of
-opening a file or creating a socket,
+The main benefits in using this module:
+
+=over
+
+=item Lower memory with high volume of file descriptors
+
+=item Lower latency for opening a files, sockets
+
+=item Lower latency for accepting sockets, with lower backlog
+
+=item No unessisary encoders setup 
+
+
+=back
+
 
 =head1 SUPPORTED SYSTEMS
 
-Currently focused on unix type systems, as this is the natural habitat of a file descriptor.
+Currently focused on unix type systems, as this is the natural habitat of a
+file descriptor.
 
 
 TODO:
 	Attempt to work with winsock
 	Additional advanced fd functions (send fds , sendfile...)
 
-=head1 GOAL
-
-The main goal of this module is to B<reduce the overhead in opening a file,
-creating or accepting a socket> for server applications.
-
-The secondary goal is to provide support functions to make using file
-descriptors feasible without 'upgrading' to a perl filehandle. This means
-implementing common routines such as bind, accept, sysread et. al.
-
-Raw I/O throughput is not primary focus as buffered I/O via Perl's file handles
-will most likely give higher throughput in most file access.
-
 =head1 MOTIVATION
 
-Perl makes working with files pretty easy, thanks to the use of B<file
-handles>. Line splitting, UTF-8, EOL processing etc. are awesome and make your life easier.
+Perl makes working with text files pretty easy, thanks to the use of B<file
+handles>. Line splitting, UTF-8, EOL processing etc. are awesome and make your
+life easier.
 
-However there are use cases where the awesomeness of a file handle isn't
-appreciated and in fact can reduce overall performance. Once such case, is a
-web server.
+However there are use cases where this is of little help or isn't appreciated.
+For example network programming which isn't basic text.
+
+In fact, filehandles can reduce overall performance, because they are preparing for something that will never be used.
 
 =over
 
@@ -253,6 +256,11 @@ TODO
 =head3 sysioctl
 
 Alias to ioctl
+
+=head3 stat
+
+=head3 lstat
+
 
 TODO
 

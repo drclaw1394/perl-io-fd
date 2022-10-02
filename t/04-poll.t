@@ -7,7 +7,7 @@ use IO::FD;
 use IO::FD::Constants;
 
 use feature ":all";
-say @IO::FD::Constants::EXPORT;
+#say @IO::FD::Constants::EXPORT;
 
 use Fcntl;
 use strict;
@@ -42,9 +42,9 @@ for(0..10){
 	$list.=pack "(iss)*", $read, POLLIN, 0, $write, POLLOUT, 0;
 	#$list.=pack "iss",$write,POLLOUT,0;
 
-	say STDERR join ", ",unpack "(iss)*", $list;
+	#say STDERR join ", ",unpack "(iss)*", $list;
 	my $res=IO::FD::poll($list,1);
 
-	say STDERR "Poll result: $res";
-	say STDERR join ", ",unpack "(iss)*", $list;
+	#say STDERR "Poll result: $res";
+	#say STDERR join ", ",unpack "(iss)*", $list;
 }
