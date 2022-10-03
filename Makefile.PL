@@ -1,5 +1,23 @@
 use 5.036000;
 use ExtUtils::MakeMaker;
+use Config;
+
+my %defines;
+#Do some OS detection here
+for($Config{osname}){
+	if(/darwin/){
+		$defines{IO_FD_OS_DARWIN}=1
+	}
+	elsif(/linux/){
+		$defines{IO_FD_OS_LINUX}=1;
+	}
+	elsif(/win32/){
+		die "WIN32 Unsupported at this time"
+	}
+	else{
+		die "Unsupported platform: $_"
+	}
+}
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 WriteMakefile(
@@ -10,7 +28,7 @@ WriteMakefile(
     AUTHOR            => 'Ruben Westerberg <drclaw@mac.com>',
     LICENSE           => 'mit',
     LIBS              => [''], # e.g., '-lm'
-    DEFINE            => '', # e.g., '-DHAVE_SOMETHING'
+    DEFINE            => (map {"-D$_"} keys %defines), # e.g., '-DHAVE_SOMETHING'
     INC               => '-I.', # e.g., '-I. -I/usr/include/other'
 	# Un-comment this if you add C files to link with later:
     # OBJECT            => '$(O_FILES)', # link all the C files too

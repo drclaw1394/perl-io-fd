@@ -13,7 +13,10 @@
 #include <poll.h>
 
 #include <sys/time.h>
+
+#if defined(IO_FD_OS_DARWIN) 
 #include <sys/event.h>
+#endif
 
 #include <sys/stat.h>
 
@@ -50,6 +53,18 @@ SV * slurp(int fd, int read_size){
 	return buffer;
 }
 
+
+#if defined(IO_FD_OS_DARWIN)
+#define IO_FD_ATIME atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
+#define IO_FD_MTIME mtime=buf.st_mtimespec.tv_sec+buf.st_mtimespec.tv_nsec*1e-9;
+#define IO_FD_CTIME ctime=buf.st_ctimespec.tv_sec+buf.st_ctimespec.tv_nsec*1e-9;
+#endif
+
+#if defined(IO_FD_OS_LINUX)
+#define IO_FD_ATIME atime=buf.st_atim.tv_sec+buf.st_atim.tv_nsec*1e-9;
+#define IO_FD_MTIME mtime=buf.st_mtim.tv_sec+buf.st_mtim.tv_nsec*1e-9;
+#define IO_FD_CTIME ctime=buf.st_ctim.tv_sec+buf.st_ctim.tv_nsec*1e-9;
+#endif
 
 
 
@@ -1325,9 +1340,18 @@ stat(target)
 			switch(GIMME_V){
 				case G_ARRAY:
 					//fprintf(stderr , "ARRAY CONTEXT. no error\n");
-					atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
-					mtime=buf.st_mtimespec.tv_sec+buf.st_mtimespec.tv_nsec*1e-9;
-					ctime=buf.st_ctimespec.tv_sec+buf.st_ctimespec.tv_nsec*1e-9;
+
+
+					//atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
+					//mtime=buf.st_mtimespec.tv_sec+buf.st_mtimespec.tv_nsec*1e-9;
+					//ctime=buf.st_ctimespec.tv_sec+buf.st_ctimespec.tv_nsec*1e-9;
+					IO_FD_ATIME
+					IO_FD_MTIME
+					IO_FD_CTIME
+
+
+
+
 
 					//Work through the items in the struct
 					//dSP;
@@ -1373,7 +1397,7 @@ stat(target)
 		}
 
 
-#if defined(__DARWIN__) || defined(__BSD__)
+#if defined(IO_FD_OS_DARWIN) 
 SV *
 kqueue()
 
