@@ -11,6 +11,7 @@ my $block_size=1024;
 use Fcntl;
 {
 
+	say "";
 	say "Read performance:";
 	#read performance
 	die "Open failed" unless sysopen my $fh, "/dev/zero", O_RDONLY;
@@ -18,7 +19,7 @@ use Fcntl;
 	die "Open failed" unless IO::FD::sysopen my $fd, "/dev/zero", O_RDONLY;
 
 	for(0..$max_po2){
-		say "Read $block_size  x 2^$_";
+		say "Read (bytes): $block_size x 2^$_";
 		my $size=$block_size *2**$_;
 		cmpthese -1, {
 			file_handle=>sub {sysread $fh,my $buffer="", $size},
@@ -41,7 +42,7 @@ use Fcntl;
 	die "Open failed" unless my $pfd=POSIX::open "/dev/null", O_WRONLY;
 	die "Open failed" unless IO::FD::sysopen my $fd, "/dev/null", O_WRONLY;
 	for (0..$max_po2){
-		say "$block_size x 2^$_";
+		say "Write (bytes): $block_size x 2^$_";
 		my $data="x" x ($block_size *2**$_);
 		cmpthese -1, {
 			file_handle=>sub {syswrite $fh,$data},

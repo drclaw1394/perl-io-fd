@@ -6,25 +6,33 @@ use IO::FD;
 use Exporter "import";
 
 our %EXPORT_TAGS = ( 'all' => [ qw(
-	accept
-	listen
 	socket
 	socketpair
 	bind
+	listen
+	accept
 	connect
 	getsockopt
 	setsockopt
+ 	getpeername
+	getsockname
 
 	sysopen
+	sysseek
+
+	pipe
+
 	close
+	recv
+	send
+
 	sysread
 	syswrite
 
-	pipe
-	sysseek
+	stat
+	lstat
 
-	dup
-	dup2
+
 
 	fcntl
 	ioctl
@@ -35,12 +43,18 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-#wrapper around IO::FD function which allow for filehandles or filedescriptors
-#Makes it very easy to change existing code to use file descriptors 
+our @EXPORT=@EXPORT_OK;
 
 
+#SOCKETS
 sub socket :prototype($$$$) 
 	{ref($_[0]) ? &CORE::socket : &IO::FD::socket; }
+
+sub socketpair:prototype($$$$$) 
+	{ref($_[0]) ? &CORE::socketpair : &IO::FD::socketpair; }
+
+sub bind:prototype($$) 
+	{ref($_[0]) ? &CORE::bind : &IO::FD::bind; }
 
 sub listen:prototype($$) 
 	{ref($_[0]) ? &CORE::listen : &IO::FD::listen; }
@@ -50,48 +64,6 @@ sub accept:prototype($$)
 
 sub connect:prototype($$) 
 	{ref($_[0]) ? &CORE::connect : &IO::FD::connect; }
-
-sub sysopen:prototype($$$@) 
-	{ref($_[0]) ? &CORE::sysopen : &IO::FD::sysopen; }
-
-sub close($) 
-	{ref($_[0]) ? &CORE::close : &IO::FD::close; }
-
-sub sysread:prototype($$$@) 
-	{ref($_[0]) ? &CORE::sysread : &IO::FD::sysread; }
-
-sub syswrite:prototype($$@) 
-	{ref($_[0]) ? &CORE::syswrite : &IO::FD::syswrite; }
-
-sub send:prototype($$$@) 
-	{ref($_[0]) ? &CORE::send : &IO::FD::send; }
-
-sub recv:prototype($$$$) 
-	{ref($_[0]) ? &CORE::recv : &IO::FD::recv; }
-
-sub pipe:prototype($$) 
-	{ref($_[0]) ? &CORE::pipe : &IO::FD::pipe; }
-
-sub bind:prototype($$) 
-	{ref($_[0]) ? &CORE::bind : &IO::FD::bind; }
-
-sub socketpair:prototype($$$$$) 
-	{ref($_[0]) ? &CORE::socketpair : &IO::FD::socketpair; }
-
-sub sysseek:prototype($$$) 
-	{ref($_[0]) ? &CORE::sysseek : &IO::FD::sysseek; }
-
-sub dup:prototype($) 
-	{ref($_[0]) ? &CORE::dup : &IO::FD::dup; }
-
-sub dup2:prototype($$) 
-	{ref($_[0]) ? &CORE::dup2 : &IO::FD::dup2; }
-
-sub fcntl:prototype($$$) 
-	{ref($_[0]) ? &CORE::fcntl : &IO::FD::fcntl; }
-
-sub ioctl:prototype($$$) 
-	{ref($_[0]) ? &CORE::ioctl : &IO::FD::ioctl; }
 
 sub getsockopt:prototype($$$) 
 	{ref($_[0]) ? &CORE::getsockopt : &IO::FD::getsockopt; }
@@ -105,11 +77,125 @@ sub getpeername:prototype($)
 sub getsockname:prototype($) 
 	{ref($_[0]) ? &CORE::getsockname : &IO::FD::getsockname; }
 
+#FILES
+
+sub sysopen:prototype($$$@) 
+	{ref($_[0]) ? &CORE::sysopen : &IO::FD::sysopen; }
+
+sub sysseek:prototype($$$) 
+	{ref($_[0]) ? &CORE::sysseek : &IO::FD::sysseek; }
+
+#PIPE
+
+sub pipe:prototype($$) 
+	{ref($_[0]) ? &CORE::pipe : &IO::FD::pipe; }
+
+
+
+#COMMON
+
+sub close($) 
+	{ref($_[0]) ? &CORE::close : &IO::FD::close; }
+
+sub recv:prototype($$$$) 
+	{ref($_[0]) ? &CORE::recv : &IO::FD::recv; }
+
+sub send:prototype($$$@) 
+	{ref($_[0]) ? &CORE::send : &IO::FD::send; }
+
+
+sub sysread:prototype($$$@) 
+	{ref($_[0]) ? &CORE::sysread : &IO::FD::sysread; }
+
+sub syswrite:prototype($$@) 
+	{ref($_[0]) ? &CORE::syswrite : &IO::FD::syswrite; }
+
+
+sub stat($$$) 
+	{ref($_[0]) ? &CORE::stat : &IO::FD::stat; }
+sub lstat($$$) 
+	{ref($_[0]) ? &CORE::lstat : &IO::FD::lstat; }
+
+sub fcntl:prototype($$$) 
+	{ref($_[0]) ? &CORE::fcntl : &IO::FD::fcntl; }
+
+sub ioctl:prototype($$$) 
+	{ref($_[0]) ? &CORE::ioctl : &IO::FD::ioctl; }
+
+sub readline($$$) 
+	{ref($_[0]) ? &CORE::readline : &IO::FD::readline; }
+
 sub fileno :prototype($) {
 	ref($_[0])
 		?fileno $_[0]
 		: $_[0];
 }
+1;
+__END__
 
-#sub select
-	#{ref($_[0]) ? &CORE::select : &IO::FD::setsockopt; }
+=head1 NAME
+
+IO::FD::DWIM - Perl sys IO with FD or FH
+
+=head1 SYNOPSIS
+
+	use IO::FD::DWIM ":all";
+
+	sysopen (my $f, ">test.txt");
+
+	syswrite $f, "hello!";
+
+=head1 DESCRIPTION
+
+Using this modules will overwrite the perl routines of the
+same name in the current scope. The new routines will work
+with either perl filehandles or integer fds via L<IO::FD>.
+Any new IO objects created will be file descriptors and
+not a subclass of IO::Handle
+
+Special variables and syntax (ie '_' for stat and <> foreadline) will not work with file descriptors.
+
+Special variables and syntax (ie '_' for stat and <> foreadline) will not work with file descriptors.
+
+
+The goal of this module is to allow easy switch over from
+file handles to file descriptors for existing code.
+
+=head1 API
+
+The following functions are imported into the current
+package:
+
+	socket
+	socketpair
+	bind
+	listen
+	accept
+	connect
+	getsockopt
+	setsockopt
+ 	getpeername
+	getsockname
+	sysopen
+	sysseek
+	pipe
+	close
+	recv
+	send
+	sysread
+	syswrite
+	stat
+	lstat
+	fcntl
+	ioctl
+	readline
+	fileno
+=head1 AUTHOR
+
+=head1 REPOSITORTY and BUGS
+
+This module is part of the L<IO::FD> distribution.
+
+=head1 LICENSE
+
+MIT license, or Perl license. Which ever your prefer

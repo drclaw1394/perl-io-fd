@@ -1,4 +1,4 @@
-use Test::More tests=>1;
+use Test::More;
 use lib "lib";
 use lib "blib/lib";
 use lib "blib/arch";
@@ -10,11 +10,13 @@ use feature ":all";
 #say @IO::FD::Constants::names;
 
 use Fcntl;
+
 use strict;
 use warnings;
 
+plan skip_all => "kqueue not supported on  $^O" if $^O !~ /darwin|bsd/i;
 
-my $kq=IO::FD::kqueue;
+my $kq=IO::FD::kqueue();
 ok defined( $kq), "Create a queue";
 
      #############################################################################
@@ -46,3 +48,4 @@ for(1..5){
 
 
 IO::FD::close $kq;
+done_testing;
