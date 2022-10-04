@@ -1,6 +1,6 @@
 =head1 NAME
 
-IO::FD - poll, socket, accept, read, write and more with file descriptors, not handles
+IO::FD - socket, listen, accept, read, write and more with file descriptors, not handles
 
 =head1 SYNOPSIS
 
@@ -79,14 +79,14 @@ Advanced:
 
 =head1 DESCRIPTION
 
-IO::FD implements core perl and system I/O operations such as C<socket>,
+IO::FD implements core Perl and system I/O operations such as C<socket>,
 C<accept>, C<bind>, C<sysopen>, C<sysread>, C<syswrite> etc on B<file
-descriptors> instead of perl B<file handles>. 
+descriptors> instead of Perl B<file handles>. 
 
-It also implements non core functions such as C<poll>, C<dup>, supplimenting
+It also implements non core functions such as C<dup>, C<mkstemp>, supplementing
 the L<POSIX> module.
 
-These interfaces mostly resemble the core perl implementations of similary
+These interfaces mostly resemble the core Perl implementations of similarly
 named functions. 
 
 For example:
@@ -103,24 +103,24 @@ The full list of routines are listed in the API section, but include C<socket>,
 C<accept>, C<bind>, C<sysopen>, C<sysread>, C<syswrite>.
 
 This modules B<IS NOT> intended to be a drop in replacement for core IO
-subrotines in existing code and does not export anything. If you want a 'drop
+subroutines in existing code and does not export anything. If you want a 'drop
 in replacement' please look at L<IO::FD::DWIM> which is part of the same
 distribution.
 
 
 This module can significantly lower memory usage per file descriptor and
-decrease file/socket opening and socket accepting times.  Acautal byte
-throughput (read/write) is basically unchanged compared to the core perl
+decrease file/socket opening and socket accepting times.  Actual byte
+throughput (read/write) is basically unchanged compared to the core Perl
 sysread/syswrite.  Please see the PERFORMANCE section later in this document
 
 
-Currently focused on unix type systems, as this is the natural habitat of a
-file descriptor.
+Currently this module is focused on Unix type systems, as this is the natural
+habitat of a file descriptor.
 
 =head1 LIMITATIONS
 
 Perl does a lot of nice things when working with files, which when using file
-descriptors directly you will B<loose>:
+descriptors directly B<you will loose>:
 
 	Buffering for file read/write performance (via print and <FH>)
 	Automatic close when out of scope
@@ -136,29 +136,29 @@ work with on your system.
 
 TODO:
 	Attempt to work with winsock?
-	Additional fd functions (send fds , sendfile...)
 
 =head1 MOTIVATION
 
-Perl makes working with text files pretty easy, thanks to the use of B<file
-handles>. Line splitting, UTF-8, EOL processing etc. are awesome and make your
-life easier.
+Perl makes working with text files easy, thanks to the use of B<file handles>.
+Line splitting, UTF-8, EOL processing etc. are awesome and make your life
+easier.
 
 However the benefits of file handles in a network context or binary files are
 not so clear cut. All the nice line ending and encoding support doesn't help
 most of the time.
 
-In addation, the OS kernel does alot of buffering for networking already. Do we
-readlly need to add more?
+In addition, the OS kernel does a lot of buffering for networking already. Do we
+really need to add more?
 
 So if these features are not being fully utilised for binary/network
-programing, the hypothosis was that opening and accepting operations would be
+programming, the hypothesis is that opening and accepting operations would be
 faster with file descriptors as less setup is required internally.
 
 =head1 APIs
 
-Each of the APIs mimic the perl counterpart as much as possible. Unless
-explicitly mentioned, they should operate like built in routines. 
+Each of the APIs mimic the Perl counterpart (if applicable) as much as
+possible. Unless explicitly mentioned, they should operate like built in
+routines. 
 
 
 =head2 Socket Manipulation
@@ -199,6 +199,7 @@ Same as sysopen, but expects all four arguments
 =head3 mkstemp
 
 =head3 sysseek
+
 
 =head2 Pipes
 
@@ -252,19 +253,12 @@ Alias to fcntl
 
 =head3 stat
 
-Likely differences to perl stat for larger integer values
+Likely differences to Perl stat for larger integer values
 
 =head3 lstat
 
-Likely differences to perl lstat for larger integer values
+Likely differences to Perl lstat for larger integer values
 
-=head3 ioctl
-
-not complete
-
-=head3 sysioctl
-
-Alias to ioctl
 
 
 
@@ -272,7 +266,15 @@ Alias to ioctl
 =head2 Experimental
 
 These haven't been tested, documented or finished. They exist none the less.
-You will need to Look at the code for documenation at the moment
+You will need to Look at the code for documentation at the moment
+
+=head3 ioctl
+
+Not complete
+
+=head3 sysioctl
+
+Alias to ioctl
 
 =head3 clock_gettime_monotonic
 
@@ -295,16 +297,10 @@ You will need to Look at the code for documenation at the moment
 	IO::FD::SV($size)
 
 Allocates a string SV with the given size preallocated. The current string
-lenth is set to 0. For short string this is not the fastest way to allocate.
+length is set to 0. For short string this is not the fastest way to allocate.
 For 4k and above, it is much faster, and doesn't use extra memory in
 compilation
 
-
-
-
-
-
-=head2 Extended API
 
 =head3 readline
 
@@ -319,7 +315,7 @@ compilation
 
 A read line function is available, but is only operates in file slurp or
 record slurp mode. As no buffering is used, It does not attempt to split
-lines or read a line at a time like the normal perl readline or  <>
+lines or read a line at a time like the normal Perl readline or  <>
 operator
 
 =head3 slurp
@@ -338,11 +334,10 @@ Open a file at $path, write $data, close file
 =head1 PERFORMANCE
 
 Part of this distribution are benchmarking scripts. The following are typical
-outputs from my Intel 2020 MacbookPro.
+outputs from my Intel 2020 Macbook Pro.
 
-=over
 
-=item	Memory Usage
+=head2	Memory Usage
 
 	Creating 2000 file handles/descriptors
 	Start maxrss (kB): 4500
@@ -355,7 +350,7 @@ outputs from my Intel 2020 MacbookPro.
 
 	End maxrss (kB): 5692
 
-=item Socket creation 
+=head2 Socket creation 
 
 			     Rate perl_socket_INET iofd_socket_INET
 	perl_socket_INET  81919/s               --             -56%
@@ -367,14 +362,14 @@ outputs from my Intel 2020 MacbookPro.
 	perl_socket_UNIX 113778/s               --             -78%
 	iofd_socket_UNIX 508970/s             347%               --
 
-=item File open and close
+=head2 File open and close
 
 			    Rate     file_handle file_desc_posix           io_fd
 	file_handle      91897/s              --            -35%            -37%
 	file_desc_posix 140549/s             53%              --             -4%
 	io_fd           146161/s             59%              4%              --
 
-=item Read Performance
+=head2 Read Performance
 
 	Read performance:
 	Read (bytes): 1024 x 2^0
@@ -403,7 +398,7 @@ outputs from my Intel 2020 MacbookPro.
 	file_handle     1180322/s              3%              --             -3%
 	io_fd           1214700/s              6%              3%              --
 
-=item Write Performance
+=head2 Write Performance
 
 	Write performance:
 	Write (bytes): 1024 x 2^0
@@ -432,24 +427,11 @@ outputs from my Intel 2020 MacbookPro.
 	io_fd           2104367/s              5%              --             -3%
 	file_handle     2163924/s              8%              3%              --
 
-=item Accepting sockets
+=head2 Accepting sockets
 
 	TODO
 
 
-=back
-
-=head2 Read throughput
-
-=head2 Write throughput
-
-=head2 Open and close a file
-
-=head2 Create and close a socket
-
-=head2 Accept and close socket
-
-=head2 Echo server connection rate
 
 =head1 SEE ALSO
 
@@ -469,10 +451,24 @@ If you are needing an event loop L<IO::AIO> might also be of use.
 =head1 AUTHOR
 
 
+Ruben Westerberg, E<lt>drclaw@mac.comE<gt>
+
 =head1 REPOSITORTY and BUGS
 
 Please report any bugs via git hub: L<http://github.com/drclaw1394/perl-io-fd>
 
-=head1 LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-MIT license, or Perl license. Which ever your prefer
+Copyright (C) 2022 by Ruben Westerberg
+
+This library is free software; you can redistribute it
+and/or modify it under the same terms as Perl or the MIT
+license.
+
+=head1 DISCLAIMER OF WARRANTIES
+
+THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE.
+=cut

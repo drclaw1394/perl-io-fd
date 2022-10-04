@@ -1,4 +1,3 @@
-use 5.036000;
 use ExtUtils::MakeMaker;
 use Config;
 
@@ -7,6 +6,9 @@ my %defines;
 for($Config{osname}){
 	if(/darwin/){
 		$defines{IO_FD_OS_DARWIN}=1
+	}
+	elsif(/bsd/){
+		$defines{IO_FD_OS_BSD}=1;
 	}
 	elsif(/linux/){
 		$defines{IO_FD_OS_LINUX}=1;
@@ -24,7 +26,7 @@ WriteMakefile(
     NAME              => 'IO::FD',
     VERSION_FROM      => 'lib/IO/FD.pm', # finds $VERSION, requires EU::MM from perl >= 5.5
     PREREQ_PM         => {}, # e.g., Module::Name => 1.1
-    ABSTRACT_FROM     => 'lib/IO/FD.pm', # retrieve abstract from module
+    ABSTRACT_FROM     => 'lib/IO/FD.pod', # retrieve abstract from module
     AUTHOR            => 'Ruben Westerberg <drclaw@mac.com>',
     LICENSE           => 'mit',
     LIBS              => [''], # e.g., '-lm'

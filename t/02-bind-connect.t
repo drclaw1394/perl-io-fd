@@ -1,6 +1,5 @@
 use Test::More tests=>2;
 
-use v5.36;
 use IO::FD;
 use Fcntl;
 

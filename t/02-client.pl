@@ -1,4 +1,3 @@
-use v5.36;
 use lib "lib";
 use lib "blib/lib";
 use lib "blib/arch";
