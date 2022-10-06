@@ -19,6 +19,14 @@ plan skip_all => "kqueue not supported on  $^O" if $^O !~ /darwin|bsd/i;
 my $kq=IO::FD::kqueue();
 ok defined( $kq), "Create a queue";
 
+#Create a pipe with a read fd and a write fd
+ok defined IO::FD::pipe(my $read, my $write);
+
+for($read,$write){
+	my $flags=IO::FD::fcntl( $_, F_GETFL,0);
+	die "Could not set non blocking" unless defined IO::FD::fcntl($_, F_SETFL, $flags|O_NONBLOCK);
+}
+
      #############################################################################
      # struct kevent {                                                           #
      #         uintptr_t       ident;          /* identifier for this event */   #
@@ -27,23 +35,19 @@ ok defined( $kq), "Create a queue";
      #         uint32_t        fflags;         /* filter-specific flags */       #
      #         intptr_t        data;           /* filter-specific data */        #
      #         void            *udata;         /* opaque user data identifier */ #
+     #         #extensions
      # };                                                                        #
      #############################################################################
 
-     #use constant KPACK64=>"(QsSLqq)*";
-     #say STDERR unpack "H*", 
-     my $struct=pack(KEVENT_PACKER, fileno(STDOUT), EVFILT_WRITE,EV_ADD|EV_ENABLE,0,0,0); 
+	my $struct=pack(KEVENT_PACKER, $read, EVFILT_READ,EV_ADD|EV_ENABLE,0,0,0); 
 
-     #say STDERR length $struct;
-my $results=IO::FD::SV(32*10);
-
-my $ret=IO::FD::kevent($kq, $struct, $results, 1);
-$struct="";
+     	my $results=IO::FD::SV(length($struct) * 10);
+	my $ret=IO::FD::kevent($kq, $struct, $results, 0);
+	
+	
 for(1..5){
-	my $ret=IO::FD::kevent($kq, $struct, $results, 1);
-	#say STDERR "kevent return : $ret  length of event list: ". length $results;
-	#say STDERR join ", ", my @r=unpack KEVENT_PACKER, $results;
-	#syswrite STDOUT,"x" x $r[4];
+	IO::FD::syswrite $write, "Hello";
+	my $ret=IO::FD::kevent($kq, $struct, $results, undef);
 }
 
 

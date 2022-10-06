@@ -66,6 +66,15 @@ SV * slurp(int fd, int read_size){
 #define IO_FD_CTIME ctime=buf.st_ctim.tv_sec+buf.st_ctim.tv_nsec*1e-9;
 #endif
 
+#if defined(IO_FD_OS_DARWIN)
+#define KEVENT kevent64
+#define KEVENT_S struct kevent64_s
+#endif
+#if defined(IO_FD_OS_BSD)
+#define KEVENT kevent
+#define KEVENT_S struct kevent
+#endif
+
 
 
 MODULE = IO::FD		PACKAGE = IO::FD		
@@ -1425,29 +1434,40 @@ kevent(kq, change_list, event_list, timeout)
 	INIT:
 		int ret;
 		int ncl, nel;
-		struct kevent *cl, *el;
+		KEVENT_S *cl, *el;
 		struct timespec tspec;
 		double tout;
 
 	CODE:
 		//Calcuate from current length
-		ncl=SvCUR(change_list)/sizeof(struct kevent);
+		ncl=SvCUR(change_list)/sizeof(KEVENT_S);
 
 		//Calculate from available length
-		nel=SvLEN(event_list)/sizeof(struct kevent);
+		nel=SvLEN(event_list)/sizeof(KEVENT_S);
 
-		cl=(struct kevent *)SvPVX(change_list);
-		el=(struct kevent *)SvPVX(event_list);
+		cl=(KEVENT_S *)SvPVX(change_list);
+		el=(KEVENT_S *)SvPVX(event_list);
 
 		//fprintf(stderr, "change list len: %d, event list available: %d\n", ncl, nel);
-		if(SvOK(timeout)&& SvNOK(timeout)){
+		if(SvOK(timeout)&& SvNIOK(timeout)){
 			tout=SvNV(timeout);
 			tspec.tv_sec=tout;
 			tspec.tv_nsec=1e9*(tout-tspec.tv_sec);
-			ret=kevent(kq,cl,ncl, el, nel, &tspec);
+#if defined(IO_FD_OS_DARWIN)
+			ret=KEVENT (kq, cl, ncl, el, nel, 0, &tspec);
+#endif
+#if defined(IO_FD_OS_BSD)
+			ret=KEVENT(kq, cl, ncl, el, nel, &tspec);
+	}
+#endif
 		}
 		else {
-			ret=kevent(kq,cl,ncl, el, nel, NULL);
+#if defined(IO_FD_OS_DARWIN)
+			ret=KEVENT(kq,cl,ncl, el, nel,0, NULL);
+#endif
+#if defined(IO_FD_OS_BSD)
+			ret=KEVENT(kq,cl,ncl, el, nel, NULL);
+#endif
 		}
 
 		if(ret<0){
@@ -1455,7 +1475,7 @@ kevent(kq, change_list, event_list, timeout)
 			RETVAL=&PL_sv_undef;
 		}
 		else {
-			SvCUR_set(event_list,sizeof(struct kevent)*ret);
+			SvCUR_set(event_list,sizeof(KEVENT_S)*ret);
 			RETVAL=newSViv(ret);
 		}
 
@@ -1465,7 +1485,7 @@ kevent(kq, change_list, event_list, timeout)
 
 	
 SV *
-pack_kevent(ident,filter,flags,fflags,data,udata)
+pack_kevent(ident,filter,flags,fflags,data,udata, ...)
 	unsigned long ident;
 	I16 filter;
 	U16 flags;
@@ -1474,18 +1494,18 @@ pack_kevent(ident,filter,flags,fflags,data,udata)
 	SV *udata;
 
 	INIT:
-		struct kevent *e;
+		KEVENT_S *e;
 
 	CODE:
-		RETVAL=newSV(sizeof(struct kevent));	
-		e=(struct kevent *)SvPVX(RETVAL);
+		RETVAL=newSV(sizeof(KEVENT_S));	
+		e=(KEVENT_S *)SvPVX(RETVAL);
 		e->ident=ident;
 		e->filter=filter;
 		e->flags=flags;
 		e->fflags=fflags;
 		e->data=data;
 		e->udata=SvRV(udata);
-		SvCUR_set(RETVAL,sizeof(struct kevent));
+		SvCUR_set(RETVAL,sizeof(KEVENT_S));
 		SvPOK_on(RETVAL);
 		//Pack
 

@@ -10,7 +10,7 @@ Create and bind a STREAM socket (server):
 	use Socket ":all";
 
 	die "Error creating socket"
-		unless IO::FD::socket(my $listen_fd, AF_INET,SOCK_STREAM,0);
+		unless IO::FD::socket(my $listen_fd, AF_INET, SOCK_STREAM, 0);
 
 	my ($err, @sockaddr)=addrinfo "0.0.0.0", 80, {
 		family=>	AF_INET,
@@ -19,7 +19,7 @@ Create and bind a STREAM socket (server):
 	};
 
 	die "Error binding"
-		unless FD::IO::bind($listen_fd,$sockaddr[0]{addr});	
+		unless FD::IO::bind($listen_fd, $sockaddr[0]{addr});	
 
 	
 	die "Error accepting" 
@@ -83,8 +83,9 @@ IO::FD implements core Perl and system I/O operations such as C<socket>,
 C<accept>, C<bind>, C<sysopen>, C<sysread>, C<syswrite> etc on B<file
 descriptors> instead of Perl B<file handles>. 
 
-It also implements non core functions such as C<dup>, C<mkstemp>, supplementing
-the L<POSIX> module.
+It also implements non core functions such as C<dup>, C<mkstemp> which also
+work on file descriptors.
+
 
 These interfaces mostly resemble the core Perl implementations of similarly
 named functions. 
@@ -114,12 +115,12 @@ throughput (read/write) is basically unchanged compared to the core Perl
 sysread/syswrite.  Please see the PERFORMANCE section later in this document
 
 
-Currently this module is focused on Unix type systems, as this is the natural
+Currently this module is focused on Unix/Linux systems, as this is the natural
 habitat of a file descriptor.
 
 =head1 LIMITATIONS
 
-Perl does a lot of nice things when working with files, which when using file
+Perl does a lot of nice things when working with files. When using file
 descriptors directly B<you will loose>:
 
 	Buffering for file read/write performance (via print and <FH>)
@@ -127,21 +128,16 @@ descriptors directly B<you will loose>:
 	Close on exec
 	Special variables not supported (ie '_' in stat)
 	No 'readline' support  (ie <FH>)
+	Not a subclass of IO::Handle, so no OO
 	
-If you don't what these mean, it might be best to learn about how it will
-impact your program before using this module.
-
-The other main limitation is this module assumes you have file descriptors to
-work with on your system.
 
 TODO:
 	Attempt to work with winsock?
 
 =head1 MOTIVATION
 
-Perl makes working with text files easy, thanks to the use of B<file handles>.
-Line splitting, UTF-8, EOL processing etc. are awesome and make your life
-easier.
+Perl makes working with text files easy, thanks to B<file handles>.  Line
+splitting, UTF-8, EOL processing etc. are awesome and make your life easier.
 
 However the benefits of file handles in a network context or binary files are
 not so clear cut. All the nice line ending and encoding support doesn't help
@@ -265,8 +261,9 @@ Likely differences to Perl lstat for larger integer values
 
 =head2 Experimental
 
-These haven't been tested, documented or finished. They exist none the less.
-You will need to Look at the code for documentation at the moment
+These haven't really been tested, documented or finished. They exist none the
+less.  You will need to Look at the code for documentation at the moment. Their
+behaviour and interface are LIKELY TO CHANGE without notice.
 
 =head3 ioctl
 

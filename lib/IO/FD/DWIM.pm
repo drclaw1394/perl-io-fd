@@ -104,16 +104,16 @@ sub send:prototype($$$@)
 	{ref($_[0]) ? &CORE::send : &IO::FD::send; }
 
 
-sub sysread:prototype($$$@) 
+sub sysread:prototype($\$$@) 
 	{ref($_[0]) ? &CORE::sysread : &IO::FD::sysread; }
 
 sub syswrite:prototype($$@) 
 	{ref($_[0]) ? &CORE::syswrite : &IO::FD::syswrite; }
 
 
-sub stat($$$) 
+sub stat($) 
 	{ref($_[0]) ? &CORE::stat : &IO::FD::stat; }
-sub lstat($$$) 
+sub lstat($) 
 	{ref($_[0]) ? &CORE::lstat : &IO::FD::lstat; }
 
 sub fcntl:prototype($$$) 
@@ -122,7 +122,7 @@ sub fcntl:prototype($$$)
 sub ioctl:prototype($$$) 
 	{ref($_[0]) ? &CORE::ioctl : &IO::FD::ioctl; }
 
-sub readline($$$) 
+sub readline($) 
 	{ref($_[0]) ? &CORE::readline : &IO::FD::readline; }
 
 sub fileno :prototype($) {

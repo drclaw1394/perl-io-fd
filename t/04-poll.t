@@ -1,4 +1,4 @@
-use Test::More tests=>1;
+use Test::More;
 use lib "lib";
 use lib "blib/lib";
 use lib "blib/arch";
@@ -27,24 +27,24 @@ use warnings;
 # };                           #
 ################################
 
+#Create a pipe with a read fd and a write fd
 ok defined IO::FD::pipe(my $read, my $write);
 
 for($read,$write){
 	my $flags=IO::FD::fcntl( $_, F_GETFL,0);
-	IO::FD::fcntl($_, F_SETFL, $flags|O_NONBLOCK);
+	die "Could not set non blocking" unless defined IO::FD::fcntl($_, F_SETFL, $flags|O_NONBLOCK);
 }
 
 #Poll
 #pack "iss"; #int=> fd short=>flags to watch,  short=>result flags;
 my %position;
+my $list="";
+$list.=pack POLLFD_PACKER, $read, POLLIN, 0, $write, POLLOUT, 0;
 for(0..10){
-	my $list="";
-	$list.=pack "(iss)*", $read, POLLIN, 0, $write, POLLOUT, 0;
-	#$list.=pack "iss",$write,POLLOUT,0;
+	#Build list to monitor
+	#execute poll
+	my $res=IO::FD::poll($list,0);
+	ok $res==1 , "Write ready";
 
-	#say STDERR join ", ",unpack "(iss)*", $list;
-	my $res=IO::FD::poll($list,1);
-
-	#say STDERR "Poll result: $res";
-	#say STDERR join ", ",unpack "(iss)*", $list;
 }
+done_testing;

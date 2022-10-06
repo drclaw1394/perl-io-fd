@@ -112,12 +112,42 @@ BEGIN {
 
 );
 }
-use constant {@names};
-use constant POLLFD_PACKER=>"(iss)*";
-use constant KEVENT_PACKER=>"(QsSLqq)*";
+my $kevent_packer;
+my $poll_packer;
+BEGIN {
+	$kevent_packer=do {
+		if($^O =~ /darwin/){
+			#ON darwin we use the kevent64_s type
+			"QsSLqQQQ"
 
-use constant POLLFD_PACKER_ONCE=>"iss";
-use constant KEVENT_PACKER_ONCE=>"QsSLqq";
+		}
+		elsif($^O=~ /bsd/){
+			#bsd kqueue only has this type
+			"QsSLqQQQQQ"
+
+		}
+		else {
+			"";
+		}
+	};
+	$poll_packer = do {
+		if($^O =~/darwin/){
+			"iss";
+		}
+		elsif ($^O =~/bsd/){
+			"iss";
+		}
+		else {
+			"";
+		}
+	};
+}
+use constant {@names};
+use constant POLLFD_PACKER=>"($poll_packer)*";
+use constant KEVENT_PACKER=>"($kevent_packer)*";
+
+use constant POLLFD_PACKER_ONCE=>$poll_packer;
+use constant KEVENT_PACKER_ONCE=>$kevent_packer;
 
 use Exporter "import";
 
