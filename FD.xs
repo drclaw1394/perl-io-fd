@@ -1122,17 +1122,31 @@ mkstemp(template)
 
 	INIT:
 		int ret;
-	CODE:
+		char *path;
+	PPCODE:
+
 		ret=mkstemp(template);
 		if(ret<0){
-			RETVAL=&PL_sv_undef;
+			croak_nocontext("Error creating temp file");
+			//mXPUSHs(&PL_sv_undef);
 		}	
 		else{
-			RETVAL=newSViv(ret);
+			switch(GIMME_V){
+				case G_SCALAR:
+					mXPUSHs(newSViv(ret));
+					break;
+				case G_ARRAY:
+					
+					EXTEND(SP,2);
+					mPUSHs(newSViv(ret));
+					mPUSHs(newSVpv(path,0));
+					break;
+				default:
+					break;
+					
+			}
 		}
 
-	OUTPUT:
-		RETVAL
 #MKTEMP
 #######
 
@@ -1143,23 +1157,17 @@ mktemp(template)
 	INIT:
 		char *ret;
 		char *buf;
-	CODE:
+	PPCODE:
 		ret=mktemp(template);
 		if(ret==NULL){
-			RETVAL=&PL_sv_undef;
+			croak_nocontext("Error creating temp file");
+			//RETVAL=&PL_sv_undef;
 			//fprintf(stderr, "temp file creation failed\n");
 		}
 		else{
-			RETVAL=newSV(0);
-
-			sv_setpv(RETVAL,ret);
-			buf=SvPVX(RETVAL);
-			//fprintf(stderr, "File name generated %s\n", buf);
+			mXPUSHs(newSVpv(ret, 0));
 		}
 
-
-	OUTPUT:
-		RETVAL
 
 SV*
 recv(fd,data,len,flags)

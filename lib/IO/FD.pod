@@ -279,9 +279,13 @@ Alias to ioctl
 
 =head3 poll
 
+Constants for use with poll are available via  C<IO::FD:Constants>
+
 =head3 kqueue
 
 =head3 kevent
+
+Constants for use with kevent are available via  C<IO::FD:Constants>
 
 =head3 pack_kevent
 

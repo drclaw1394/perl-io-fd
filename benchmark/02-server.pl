@@ -57,7 +57,7 @@ sub do_server {
 	vec($rvec, IO::FD::fileno $listener_fd,1)=1;	#
 	my $rate;
 
-	my $count=IO::FD::select $rvec, undef, undef, 1;
+	my $count=select $rvec, undef, undef, 1;
 	if($count){
 		my $counter=0;
 		my $end_time;
