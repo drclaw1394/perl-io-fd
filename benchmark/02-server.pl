@@ -7,6 +7,8 @@ use IO::FD;
 use Fcntl;
 
 use Socket ":all";
+my $back_log=100;
+my $limit=1000;
 
 
 
@@ -17,44 +19,18 @@ unlink($sock_file);
 
 my $addr=pack_sockaddr_un($sock_file);
 
-IO::FD::socket my $listener_fd,AF_UNIX, SOCK_STREAM, 0;
-IO::FD::bind($listener_fd, $addr);
+die $! unless defined IO::FD::socket my $listener_fd,AF_UNIX, SOCK_STREAM, 0;
+die $! unless defined IO::FD::bind($listener_fd, $addr);
 my $flags=IO::FD::fcntl $listener_fd, F_GETFL, 0;
 
-say STDERR "Flags on listener: $flags";
-say STDERR "REad write enabled" if O_RDWR & $flags;
-say STDERR "REad only enabled" if O_RDONLY & $flags;
-IO::FD::fcntl $listener_fd, F_SETFL, $flags|O_NONBLOCK;
-$flags=IO::FD::fcntl $listener_fd, F_GETFL, 0;
-say STDERR "Flags on listener: $flags";
-say STDERR "NONBLOCKING" if $flags& O_NONBLOCK;
+die $! unless defined IO::FD::fcntl $listener_fd, F_SETFL, $flags|O_NONBLOCK;
 
 
-################################################################################
-# my $buffer;#=h"asdfasdf";                                                    #
-# my $ret=IO::FD::getsockopt($listener_fd, SOL_SOCKET, SO_TYPE, $buffer);      #
-# say STDERR "getsockopt status: $!" unless $ret;                              #
-# say STDERR "Socket type ". unpack "I", $buffer;                              #
-#                                                                              #
-# $ret=IO::FD::getsockopt($listener_fd, SOL_SOCKET, SO_SNDBUF, $buffer);       #
-# say STDERR "getsockopt status: $!" unless $ret;                              #
-# say STDERR "send buffer size". unpack "I", $buffer;                          #
-#                                                                              #
-#                                                                              #
-# $ret=IO::FD::setsockopt($listener_fd, SOL_SOCKET, SO_SNDBUF, pack "I", 512); #
-# say STDERR "setsockopt status: $!" unless $ret;                              #
-#                                                                              #
-#                                                                              #
-# $ret=IO::FD::getsockopt($listener_fd, SOL_SOCKET, SO_SNDBUF, $buffer);       #
-# say STDERR "getsockopt status: $!" unless $ret;                              #
-# say STDERR "send buffer size". unpack "I", $buffer;                          #
-################################################################################
 
-
-die "Could not listen: $!" unless IO::FD::listen IO::FD::fileno $listener_fd, 100;
+die "Could not listen: $!" unless defined IO::FD::listen IO::FD::fileno $listener_fd, $back_log;
 sub do_server {
 	my $rvec="";
-	vec($rvec, IO::FD::fileno $listener_fd,1)=1;	#
+	vec($rvec, $listener_fd,1)=1;	#
 	my $rate;
 
 	my $count=select $rvec, undef, undef, 1;
@@ -63,8 +39,8 @@ sub do_server {
 		my $end_time;
 		my $start_time;
 		$start_time=time;
-		if(vec $rvec, IO::FD::fileno $listener_fd, 1){
-			while(my $addr=IO::FD::accept my $fd, IO::FD::fileno $listener_fd){
+		if(vec $rvec, $listener_fd, 1){
+			while(my $addr=IO::FD::accept my $fd, $listener_fd){
 				#close right away
 				IO::FD::close $fd;
 				$counter++;
@@ -80,7 +56,6 @@ sub do_server {
 }
 
 
-my $limit=10000;
 my $counter=0;
 my $sum=0;
 while(1){

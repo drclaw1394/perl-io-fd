@@ -135,7 +135,7 @@ __END__
 
 =head1 NAME
 
-IO::FD::DWIM - Perl sys IO with FD or FH
+IO::FD::DWIM - Mixed file handle/descriptor functions
 
 =head1 SYNOPSIS
 
@@ -147,19 +147,22 @@ IO::FD::DWIM - Perl sys IO with FD or FH
 
 =head1 DESCRIPTION
 
-Using this modules will overwrite the perl routines of the
-same name in the current scope. The new routines will work
-with either perl filehandles or integer fds via L<IO::FD>.
-Any new IO objects created will be file descriptors and
-not a subclass of IO::Handle
+Using this modules will overwrite the Perl routines of the same name. The new
+routines will work with either Perl file handles or integer fds via L<IO::FD>.
 
-Special variables and syntax (ie '_' for stat and <> foreadline) will not work with file descriptors.
+If the first argument to these functions look like a reference, then they are
+assumed to be Perl file handles. In this case the CORE:: version of the function
+will be called with the same parameters.
 
-Special variables and syntax (ie '_' for stat and <> foreadline) will not work with file descriptors.
+Otherwise, they are assumed to be integer file descriptor values and the
+corresponding IO::FD function will be called with the same parameters.
 
 
-The goal of this module is to allow easy switch over from
-file handles to file descriptors for existing code.
+Special variables and syntax (i.e '_' for stat and <> for readline) will not work
+with these functions.
+
+The goal of this module is to allow easy switch over from file handles to file
+descriptors for networking code.
 
 =head1 API
 
@@ -190,12 +193,27 @@ package:
 	ioctl
 	readline
 	fileno
+
 =head1 AUTHOR
+
+Ruben Westerberg, E<lt>drclaw@mac.comE<gt>
 
 =head1 REPOSITORTY and BUGS
 
 This module is part of the L<IO::FD> distribution.
 
-=head1 LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-MIT license, or Perl license. Which ever your prefer
+Copyright (C) 2022 by Ruben Westerberg
+
+This library is free software; you can redistribute it
+and/or modify it under the same terms as Perl or the MIT
+license.
+
+=head1 DISCLAIMER OF WARRANTIES
+
+THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE.
+=cut

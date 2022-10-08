@@ -1,6 +1,6 @@
 =head1 NAME
 
-IO::FD - socket, listen, accept, read, write and more with file descriptors, not handles
+IO::FD - faster accept, socket, listen, read, write and friends with file descriptors, not handles
 
 =head1 SYNOPSIS
 
@@ -79,15 +79,24 @@ Advanced:
 
 =head1 DESCRIPTION
 
-IO::FD implements core Perl and system I/O operations such as C<socket>,
-C<accept>, C<bind>, C<sysopen>, C<sysread>, C<syswrite> etc on B<file
-descriptors> instead of Perl B<file handles>. 
+IO::FD is an XS module which implements core Perl and system I/O functions on
+top of B<file descriptors> instead of Perl B<file handles>. Functions include
+but are not limited to C<accept>, C<connect>, C<socket>, C<bind>, C<sysopen>,
+C<sysread>, and C<syswrite>.
 
-It also implements non core functions such as C<dup>, C<mkstemp> which also
-work on file descriptors.
+It also implements non core functions which normally would use file handles
+such as C<dup> and C<mkstemp>.
 
+This module can significantly lower memory usage per file descriptor and
+decrease file/socket opening and socket accepting times.  C<accept> performance
+is particularly improved with much higher connection handling rates and lower
+backlog.
 
-These interfaces mostly resemble the core Perl implementations of similarly
+Actual byte throughput (read/write) is basically unchanged compared to the core
+Perl sysread/syswrite.  Please see the PERFORMANCE section later in this
+document
+
+The supported interfaces mostly resemble the core Perl implementations of similarly
 named functions. 
 
 For example:
@@ -100,39 +109,49 @@ For example:
 	IO::FD::sysopen(my $file_descriptor, ...);
 	IO::FD::sysread($file_descriptor, ...);
 
-The full list of routines are listed in the API section, but include C<socket>,
-C<accept>, C<bind>, C<sysopen>, C<sysread>, C<syswrite>.
-
 This modules B<IS NOT> intended to be a drop in replacement for core IO
-subroutines in existing code and does not export anything. If you want a 'drop
-in replacement' please look at L<IO::FD::DWIM> which is part of the same
-distribution.
-
-
-This module can significantly lower memory usage per file descriptor and
-decrease file/socket opening and socket accepting times.  Actual byte
-throughput (read/write) is basically unchanged compared to the core Perl
-sysread/syswrite.  Please see the PERFORMANCE section later in this document
-
+subroutines in existing code as it does not it does not export anything. If you
+want a 'drop in replacement' please look at L<IO::FD::DWIM> which is part of
+the same distribution.
 
 Currently this module is focused on Unix/Linux systems, as this is the natural
 habitat of a file descriptor.
+
+=head1 WHERE SHOULD I USE THIS MODULE?
+
+=head2 Networking ... Yes
+
+Socket centric programs will benefit greatly from this module. The process of
+socket creation/opening/accepting/listening, where it is INET/INET6 or UNIX
+families is much improved. 
+
+=head2 Slurp entire file ... Yes
+
+If a file can be loaded completely into memory for processing, this module will
+provide improved opening and closing times. Any decoding and line processing
+will need to be done manually
+
+=head2 Line Processing ... No
+
+General text file line processing is best left to Perl file handles. File handles
+do the heavy lifting of line splitting, EOL handling, encodings, which this
+modules does not implement.
+
+You can do it, but it is not in the scope of this module.
+
 
 =head1 LIMITATIONS
 
 Perl does a lot of nice things when working with files. When using file
 descriptors directly B<you will loose>:
 
-	Buffering for file read/write performance (via print and <FH>)
+	Buffering for file small read/write performance (via print and <FH>)
 	Automatic close when out of scope
 	Close on exec
 	Special variables not supported (ie '_' in stat)
 	No 'readline' support  (ie <FH>)
 	Not a subclass of IO::Handle, so no OO
-	
 
-TODO:
-	Attempt to work with winsock?
 
 =head1 MOTIVATION
 
@@ -141,7 +160,7 @@ splitting, UTF-8, EOL processing etc. are awesome and make your life easier.
 
 However the benefits of file handles in a network context or binary files are
 not so clear cut. All the nice line ending and encoding support doesn't help
-most of the time.
+most of the time in these scenarios.
 
 In addition, the OS kernel does a lot of buffering for networking already. Do we
 really need to add more?
@@ -154,146 +173,150 @@ faster with file descriptors as less setup is required internally.
 
 Each of the APIs mimic the Perl counterpart (if applicable) as much as
 possible. Unless explicitly mentioned, they should operate like built in
-routines. 
+routines.  Consult perldoc -f FUNCTION for details.
 
+As none of these functions are exported, they must be called with full package
+name.
 
 =head2 Socket Manipulation
 
-=head3 socket
+=head3 IO::FD::socket
 
-=head3 socketpair
+=head3 IO::FD::socketpair
 
-=head3 bind
+=head3 IO::FD::bind
 
-=head3 listen
+=head3 IO::FD::listen
 
-=head3 accept
+=head3 IO::FD::accept
 
-=head3 connect
+=head3 IO::FD::connect
 
-=head3 getsockopt
+=head3 IO::FD::getsockopt
 
-=head3 setsockopt
+=head3 IO::FD::setsockopt
 
 Note: Implements the integer shorthand as per perldoc -f setsockopt
 
-=head3 getpeername
+=head3 IO::FD::getpeername
 
-=head3 getsockname
+=head3 IO::FD::getsockname
 
 
 =head2 File Maniupulation
 
-=head3 sysopen
+=head3 IO::FD::sysopen
 
-=head3 sysopen4
+=head3 IO::FD::sysopen4
 
-Same as sysopen, but expects all four arguments
+Same as C<IO::FD::sysopen>, but expects all four arguments
 
-=head3 mktemp
+=head3 IO::FD::mktemp
 
-=head3 mkstemp
+=head3 IO::FD::mkstemp
 
-=head3 sysseek
+=head3 IO::FD::sysseek
 
 
 =head2 Pipes
 
-=head3 pipe
+=head3 IO::FD::pipe
 
-=head3 syspipe
+=head3 IO::FD::syspipe
 
-A alias of pipe.
+A alias of C<IO::FD::pipe>.
 
 =head2 Common
 
-=head3 dup
+=head3 IO::FD::dup
 
-=head3 dup2
+=head3 IO::FD::dup2
 
-=head3 close
+=head3 IO::FD::close
 
-=head3 recv
+=head3 IO::FD::recv
 
-=head3 send
+=head3 IO::FD::send
 
-=head3 sysread
+=head3 IO::FD::sysread
 
-=head3 sysread3
+=head3 IO::FD::sysread3
 
-Same as sysread, but expects only 3 of 4 arguments
+Same as C<IO::FD::sysread>, but expects only 3 of 4 arguments
 
-=head3 sysread4
+=head3 IO::FD::sysread4
 
-Same as sysread, but expects all four arguments
+Same as C<IO::FD::sysread>, but expects all four arguments
 
-=head3 syswrite
+=head3 IO::FD::syswrite
 
-=head3 syswrite2
+=head3 IO::FD::syswrite2
 
-Same as syswrite, but expect 2 of 4 arguments.
+Same as C<IO::FD::syswrite>, but expect 2 of 4 arguments.
 
-=head3 syswrite3
+=head3 IO::FD::syswrite3
 
-Same as syswrite, but expect 3 of 4 arguments.
+Same as C<IO::FD::syswrite>, but expect 3 of 4 arguments.
 
-=head3 syswrite4
+=head3 IO::FD::syswrite4
 
-Same as syswrite, but expect 4 of 4 arguments.
+Same as C<IO::FD::syswrite>, but expect 4 of 4 arguments.
 
-=head3 fcntl
+=head3 IO::FD::fcntl
 
-=head3 sysfcntl
+=head3 IO::FD::sysfcntl
 
-Alias to fcntl
+Alias to C<IO::FD::fcntl>
 
-=head3 stat
+=head3 IO::FD::stat
 
 Likely differences to Perl stat for larger integer values
 
-=head3 lstat
+TODO: fix this!
+
+=head3 IO::FD::lstat
 
 Likely differences to Perl lstat for larger integer values
 
-
+TODO: fix this!
 
 
 
 =head2 Experimental
 
-These haven't really been tested, documented or finished. They exist none the
-less.  You will need to Look at the code for documentation at the moment. Their
-behaviour and interface are LIKELY TO CHANGE without notice.
+These functions haven't really been tested, documented or finished. They exist
+none the less.  You will need to Look at the code for documentation at the
+moment. Their behaviour and interface are LIKELY TO CHANGE without notice.
 
-=head3 ioctl
+=head3 IO::FD::ioctl
 
 Not complete
 
-=head3 sysioctl
+=head3 IO::FD::sysioctl
 
 Alias to ioctl
 
-=head3 clock_gettime_monotonic
+=head3 IO::FD::clock_gettime_monotonic
 
-=head3 select
+=head3 IO::FD::select
 
-=head3 poll
+=head3 IO::FD::poll
 
 Constants for use with poll are available via  C<IO::FD:Constants>
 
-=head3 kqueue
+=head3 IO::FD::kqueue
 
-=head3 kevent
+=head3 IO::FD::kevent
 
 Constants for use with kevent are available via  C<IO::FD:Constants>
 
-=head3 pack_kevent
+=head3 IO::FD::pack_kevent
 
-=head3 sv_to_pointer
+=head3 IO::FD::sv_to_pointer
 
-=head3 pointer_to_sv
+=head3 IO::FD::pointer_to_sv
 
-=head3 SV
+=head3 IO::FD::SV
 	
 	IO::FD::SV($size)
 
@@ -303,33 +326,22 @@ For 4k and above, it is much faster, and doesn't use extra memory in
 compilation
 
 
-=head3 readline
+=head3 IO::FD::readline
 
 	#SLURP A FILE
 	local $/=undef;
 	my $slurp=IO::FD::readline;
 
 		#or
-	#SLURP ALL RECORDS
+	#SLURP ALL RECORDS OF KNOWN LENGTH
 	local $/=\1234;
 	my @records=IO::FD::readline;
 
-A read line function is available, but is only operates in file slurp or
-record slurp mode. As no buffering is used, It does not attempt to split
-lines or read a line at a time like the normal Perl readline or  <>
-operator
+A read line function is available, but is only operates in file slurp or record
+slurp mode (see perldoc -f readline). As no buffering is used, It does not
+attempt to split lines or read a line at a time like the normal Perl readline
+or  <> operator
 
-=head3 slurp
-
-	my $data=IO::FD::slurp $path;
-
-Open file at $path, read the contents into scalar and close the file.
-
-=head3 spew 
-
-	IO::FD::spew $path, $data;
-
-Open a file at $path, write $data, close file
 
 
 =head1 PERFORMANCE
@@ -337,8 +349,46 @@ Open a file at $path, write $data, close file
 Part of this distribution are benchmarking scripts. The following are typical
 outputs from my Intel 2020 Macbook Pro.
 
+=head2  Listen Backlog
+
+Results from benchmark/server-perl.pl benchmark/server.pl and benchmark/client.pl
+
+	Listen Backlog: 10
+		Perl server:
+		Connections before client refused: 18
+
+		IO::FD server
+		Connections before client refuse: 9285
+
+	Listen Backlog: 100
+		Perl server:
+		Connections before client refused: 190
+
+		IO::FD server
+		Connections before client refuse:  (none refused)
+
+	Listen Backlog: 1000
+
+		Perl server:
+		Connections before client refused: 245
+
+		IO::FD server
+		Connections before client refuse:  (none refused)
+
+=head2 Accept 
+
+Results from benchmark/server-perl.pl benchmark/server.pl and benchmark/client.pl
+
+	Listen Backlog: 100
+	
+	Perl accept rate:    73568.4857256754/s
+	IO::FD Accept rate: 150984.798776367/s
+	
+
 
 =head2	Memory Usage
+
+Results from benchmark/file-memory.pl
 
 	Creating 2000 file handles/descriptors
 	Start maxrss (kB): 4500
@@ -353,6 +403,8 @@ outputs from my Intel 2020 Macbook Pro.
 
 =head2 Socket creation 
 
+Results from benchmark/socket-create.pl
+
 			     Rate perl_socket_INET iofd_socket_INET
 	perl_socket_INET  81919/s               --             -56%
 	iofd_socket_INET 185679/s             127%               --
@@ -365,12 +417,16 @@ outputs from my Intel 2020 Macbook Pro.
 
 =head2 File open and close
 
+Results from benchmark/file-open-close.pl
+
 			    Rate     file_handle file_desc_posix           io_fd
 	file_handle      91897/s              --            -35%            -37%
 	file_desc_posix 140549/s             53%              --             -4%
 	io_fd           146161/s             59%              4%              --
 
 =head2 Read Performance
+
+Result from benchmark/file-read-write.pl
 
 	Read performance:
 	Read (bytes): 1024 x 2^0
@@ -401,6 +457,8 @@ outputs from my Intel 2020 Macbook Pro.
 
 =head2 Write Performance
 
+Result from benchmark/file-read-write.pl
+
 	Write performance:
 	Write (bytes): 1024 x 2^0
 			     Rate file_desc_posix           io_fd     file_handle
@@ -428,11 +486,6 @@ outputs from my Intel 2020 Macbook Pro.
 	io_fd           2104367/s              5%              --             -3%
 	file_handle     2163924/s              8%              3%              --
 
-=head2 Accepting sockets
-
-	TODO
-
-
 
 =head1 SEE ALSO
 
@@ -442,15 +495,17 @@ with working with files, this is a better option as it is a core module, and
 will give you the purported benefits of this module.  However it does not
 provide any networking/socket support.
 
-Perl's built in C<syscall> routine could implement most of this module. However
-macos no longer has a syscall interface. That makes C<syscall> a non starter
-for me.
+=head1 FUTURE WORK (IDEAS/TODO)
 
-If you are needing an event loop L<IO::AIO> might also be of use.
 
+	Add more tests for stat and DWIM module
+	Wider compatability for older perls
+	Add More system functions which work with fds
+	Work with win32 sockets
+	Look into making a listen/accept fh/fd hybrid
+	Maybe make an IO::Handle sub class
 
 =head1 AUTHOR
-
 
 Ruben Westerberg, E<lt>drclaw@mac.comE<gt>
 

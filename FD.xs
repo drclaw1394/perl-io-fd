@@ -1466,7 +1466,7 @@ kevent(kq, change_list, event_list, timeout)
 #endif
 #if defined(IO_FD_OS_BSD)
 			ret=KEVENT(kq, cl, ncl, el, nel, &tspec);
-	}
+	//}
 #endif
 		}
 		else {
