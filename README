@@ -78,7 +78,7 @@ DESCRIPTION
     Functions include but are not limited to "accept", "connect", "socket",
     "bind", "sysopen", "sysread", and "syswrite".
 
-    It also implements non core functions which normally would use file
+    It also implements some non core functions which normally would use file
     handles such as "dup" and "mkstemp".
 
     This module can significantly lower memory usage per file descriptor and
@@ -184,7 +184,21 @@ APIs
     Same as "IO::FD::sysopen", but expects all four arguments
 
    IO::FD::mktemp
+    Behaves similar to File::Temp::mktemp
+
+    Requires at least six 'X' characters at the end of the template
+
+    NOTE: This function does not return a file descriptor. It might be
+    included in future versions of this module
+
    IO::FD::mkstemp
+    Behaves like File::Temp::mkstemp
+
+    Requires at least six 'X' characters at the end of the template
+
+    NOTE: Currently returns "undef" as path in list context. Cross platform
+    fd paths are hard to extract. TODO: Fix this across platforms.
+
    IO::FD::sysseek
   Pipes
    IO::FD::pipe

@@ -16,6 +16,7 @@ FD.bs
 FD.c
 FD.o
 FD.xs
+IO-FD-0.1.1.tar
 lib/IO/FD.pm
 lib/IO/FD.pod
 lib/IO/FD/Constants.pm
@@ -27,8 +28,12 @@ ppport.h
 README
 README.md
 t/00-file-basic.t
+t/00-IO-FD.t
+t/01-file-basic.t
 t/01-pipe.t
+t/01-readline.t
 t/02-bind-connect.t
+t/02-send-recv.t
 t/02-sock-peer-name.t
 t/02-socketpair.t
 t/03-select.t

@@ -92,7 +92,7 @@ top of **file descriptors** instead of Perl **file handles**. Functions include
 but are not limited to `accept`, `connect`, `socket`, `bind`, `sysopen`,
 `sysread`, and `syswrite`.
 
-It also implements non core functions which normally would use file handles
+It also implements some non core functions which normally would use file handles
 such as `dup` and `mkstemp`.
 
 This module can significantly lower memory usage per file descriptor and
@@ -222,7 +222,21 @@ Same as `IO::FD::sysopen`, but expects all four arguments
 
 ### IO::FD::mktemp
 
+Behaves similar to [File::Temp::mktemp](https://metacpan.org/pod/File%3A%3ATemp%3A%3Amktemp)
+
+Requires at least six 'X' characters at the end of the template
+
+NOTE: This function does not return a file descriptor. It might be included in
+future versions of this module
+
 ### IO::FD::mkstemp
+
+Behaves like [File::Temp::mkstemp](https://metacpan.org/pod/File%3A%3ATemp%3A%3Amkstemp)
+
+Requires at least six 'X' characters at the end of the template
+
+NOTE: Currently returns `undef` as path in list context. Cross platform fd
+paths are hard to extract.  TODO:  Fix this across platforms.
 
 ### IO::FD::sysseek
 

@@ -23,7 +23,7 @@
 //Read from an fd until eof or error condition
 //Returns SV containing all the data
 // AKA "slurp";
-SV * slurp(int fd, int read_size){
+SV * slurp(pTHX_ int fd, int read_size){
 	SV* buffer;
 	char *buf;
 	int ret;
@@ -35,13 +35,15 @@ SV * slurp(int fd, int read_size){
 		buf=SvPVX(buffer);		//Get pointer to memory.. 
 		ret=read(fd, buf+len, read_size);	//Do the read,offset to current traked len
 
-		if(ret>0){
+		if(ret>=0){
 			len+=ret;		//track total length
 			buf=SvPVX(buffer);
 			buf[len]='\0';		//Add null for shits and giggles
 		}
 		else{
-			break;
+			//break;
+			//fprintf(stderr, "ERROR IN slurp\n");
+			return &PL_sv_undef;
 		}
 
 	}
@@ -1122,12 +1124,27 @@ mkstemp(template)
 
 	INIT:
 		int ret;
+		SV *path_sv;
 		char *path;
+		int len=0;
+		int min_ok=1;
 	PPCODE:
+		len=strlen(template);
+		if(len<6){
+			Perl_croak(aTHX_ "The template must end with at least 6 'X' characters");
+		}
+
+		for(int i=1; i<=6; i++){
+			min_ok=min_ok&&(template[len-i]=='X');
+		}
+		if(!min_ok){
+			Perl_croak(aTHX_ "The template must end with at least 6 'X' characters");
+		}
+
 
 		ret=mkstemp(template);
 		if(ret<0){
-			croak_nocontext("Error creating temp file");
+			Perl_croak(aTHX_ "Error creating temp file");
 			//mXPUSHs(&PL_sv_undef);
 		}	
 		else{
@@ -1136,11 +1153,17 @@ mkstemp(template)
 					mXPUSHs(newSViv(ret));
 					break;
 				case G_ARRAY:
-					
+					//path_sv=newSV(MAXPATHLEN);	
+					//path=SvPVX(path_sv);
+					//fcntl(ret, F_GETPATH, path);
+					//SvCUR_set(path_sv, strlen(path));
+
 					EXTEND(SP,2);
 					mPUSHs(newSViv(ret));
-					mPUSHs(newSVpv(path,0));
+					//mPUSHs(newSVpv(path,0));
+					mPUSHs(&PL_sv_undef);
 					break;
+
 				default:
 					break;
 					
@@ -1157,12 +1180,25 @@ mktemp(template)
 	INIT:
 		char *ret;
 		char *buf;
+		int len=0;
+		int min_ok=1;
 	PPCODE:
+		len=strlen(template);
+		if(len<6){
+			Perl_croak(aTHX_ "The template must end with at least 6 'X' characters");
+		}
+
+		for(int i=1; i<=6; i++){
+			min_ok=min_ok&&(template[len-i]=='X');
+		}
+
+		if(!min_ok){
+			Perl_croak(aTHX_ "The template must end with at least 6 'X' characters");
+		}
+
 		ret=mktemp(template);
 		if(ret==NULL){
-			croak_nocontext("Error creating temp file");
-			//RETVAL=&PL_sv_undef;
-			//fprintf(stderr, "temp file creation failed\n");
+			Perl_croak(aTHX_ "Error creating temp file");
 		}
 		else{
 			mXPUSHs(newSVpv(ret, 0));
@@ -1170,7 +1206,7 @@ mktemp(template)
 
 
 SV*
-recv(fd,data,len,flags)
+recv(fd, data, len, flags)
 	int fd
 	SV *data
 	int len
@@ -1186,27 +1222,27 @@ recv(fd,data,len,flags)
 	CODE:
 		//Makesure the buffer exists and is large enough to recv
 		if(!SvOK(data)){
-			data=newSV(len+1);
+			data=newSV(len);
 		}
 		buf = SvPOK(data) ? SvGROW(data,len+1) : NULL;
 
-		peer=newSV(sizeof(struct sockaddr)+1);
+		peer=newSV(sizeof(struct sockaddr));
 		peer_buf=(struct sockaddr *)SvPVX(peer);
 
 		addr_len=sizeof(struct sockaddr);
-		ret=recvfrom(fd,buf,len,flags,peer_buf, &addr_len);
+		ret=recvfrom(fd, buf, len, flags, peer_buf, &addr_len);
 
 		if(ret<0){
 			RETVAL=&PL_sv_undef;
 		}
 		else{
+			SvCUR_set(data,ret);
 			SvPOK_on(peer);
 			SvCUR_set(peer, addr_len);
 			RETVAL=peer;
 		}
 	OUTPUT:
 		RETVAL
-		data
 
 SV*
 send(fd,data,flags, ...)
@@ -1605,37 +1641,37 @@ readline(fd)
 			#Found variable. Read records
 			if(SvOK(irs)){
 				if(SvROK(irs)){
-					##SLURP RECORDS
+					//fprintf(stderr, "DOING RECORD READ\n");
+					//SLURP RECORDS
 
 					SV* v=SvRV(irs);	//Dereference to get SV
 					tmp=SvIV(v);		//The integer value of the sv
-					do{
-						buffer=newSV(tmp);	//Allocate buffer at record size
-						buf=SvPVX(buffer);	//Get the pointer we  need
-						ret=read(fd, buf, tmp);	//Do the read into buffer
-
-						sv_2mortal(buffer);	//Decrement ref count
-						if(ret<=0){
-							break;		//Finish on error or eof 
-						}
-
-						SvPOK_on(buffer);	//Make a string
+					buffer=newSV(tmp);	//Allocate buffer at record size
+					buf=SvPVX(buffer);	//Get the pointer we  need
+					ret=read(fd, buf, tmp);	//Do the read into buffer
+					//fprintf(stderr, "read return: %d\n", ret);
+					SvPOK_on(buffer);	//Make a string
+					if(ret>=0){
 						buf[ret]='\0';		//Set null just in case
-						SvCUR_set(buffer, tmp);	//Set the length of the string
+						SvCUR_set(buffer,ret);	//Set the length of the string
 						EXTEND(SP,1);		//Extend stack
-						PUSHs(buffer);		//Push record
-					} while(ret>0 && do_loop);
+						mPUSHs(buffer);		//Push record
+					}
+					else {
+						XSRETURN_UNDEF;
+					}
 
 				}
 				else {
-					#EOL split
-					#Requrires buffering so not supported?
+					Perl_croak( aTHX_ "IO::FD::readline does not split lines");
 				}
 			}
 			else{
-				##SLURP entire file
+
+				//fprintf(stderr, "DOING SLURP READ\n");
+				//SLURP entire file
 				EXTEND(SP,1);
-				PUSHs(slurp(fd, 4096));
+				PUSHs(slurp(aTHX_ fd, 4096));
 			}
 		}
 		else {
