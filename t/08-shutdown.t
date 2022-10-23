@@ -8,8 +8,8 @@ die "Could not create socket: $!" unless
 
 #Do shutdown.. should succeed
 ok defined IO::FD::shutdown($fd1, SHUT_RD);
-#Do shutdown .. should fail
-ok !defined IO::FD::shutdown($fd1, SHUT_RD);
+
+#TODO: attempt to read from the socket?
 
 IO::FD::close $fd1;
 IO::FD::close $fd2;
