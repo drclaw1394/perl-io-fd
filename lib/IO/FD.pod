@@ -190,6 +190,20 @@ name.
 
 =head3 IO::FD::accept
 
+=head3 IO::FD::accept_multiple
+
+	my @new_fds;
+	my @peers;
+	my $count=accept_multiple(@new_fds, @peers, $listen_sock, $force_nb)
+
+
+Accepts as many new connection sockets as available. The new sockets are stored
+in C<new_fds>, which is an array, not a array ref. The corresponding peers to
+the connections are stored in C<@peers>, also an array not a reference.
+C<$listen_sock> is the file descriptor from which  the sockets are accepted
+from and must be in a non blocking listening state.  The C<$force_nb> flag
+forces a nonblocking state on accepted sockets.
+
 =head3 IO::FD::connect
 
 =head3 IO::FD::getsockopt

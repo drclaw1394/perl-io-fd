@@ -189,6 +189,74 @@ accept(new_fd, listen_fd)
                 OUTPUT:
 			RETVAL
 			new_fd
+
+
+SV*
+accept_multiple(new_fds, peers, listen_fd, nb_flag)
+	AV* new_fds
+	AV* peers
+	SV* listen_fd
+	IV nb_flag
+	PROTOTYPE:\@\@$$
+
+	INIT:
+		struct sockaddr *packed_addr;
+		int ret;
+		SV *addr=NULL;//=newSV(sizeof(struct sockaddr));
+		SV *new_fd=NULL;
+		struct sockaddr *buf=NULL;//(struct sockaddr *)SvPVX(addr);
+		unsigned int len=sizeof(struct sockaddr);
+
+		int count=0;
+	#if defined(IO_FD_OS_LINUX) 
+		int flags;
+	#endif
+
+
+	#
+
+	PPCODE:
+
+		addr=newSV(sizeof(struct sockaddr));
+		buf=(struct sockaddr *)SvPVX(addr);
+		while((ret=accept(SvIV(listen_fd), buf, &len))>=0){
+
+	#if defined(IO_FD_OS_LINUX) 
+			if(nb_flag){
+				flags=fcntl(ret, F_GETFD);
+				fcntl(ret, F_SETFD, flags|O_NONBLOCK);
+			}
+	#endif
+	#if defined(IO_FD_OS_DARWIN)  || defined(IO_FD_OS_BSD)
+			if(!nb_flag){
+				flags=fcntl(ret, F_GETFD);
+				fcntl(ret, F_SETFD, flags|O_NONBLOCK);
+			}
+
+	#endif
+			SvPOK_on(addr);
+			SvCUR_set(addr, sizeof(struct sockaddr));
+
+			//addr=newSVpvn((char *)buf, len);
+			//SvPOK_only (addr);
+			//SvCUR_set(addr, len);
+			new_fd=newSViv(ret);
+			av_push(new_fds, new_fd);
+			av_push(peers, addr);
+			count++;
+			addr=newSV(sizeof(struct sockaddr));
+			buf=(struct sockaddr *)SvPVX(addr);
+		}	
+		if(ret<0){
+			//Release unused buffer
+			SvREFCNT_dec(addr);
+		}
+		//If new_fd is still null, we failed all to gether
+		mXPUSHs((new_fd==NULL) ?&PL_sv_undef :newSViv(count));
+		XSRETURN(1);
+
+
+
 #CONNECT
 ########
 
