@@ -57,6 +57,8 @@ SV * slurp(pTHX_ int fd, int read_size){
 }
 
 
+	SV *accept_multiple_next_addr;
+	struct sockaddr *accept_multiple_next_buf;
 
 #if defined(IO_FD_OS_DARWIN)|| defined(IO_FD_OS_BSD)
 #define IO_FD_ATIME atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
@@ -84,6 +86,12 @@ SV * slurp(pTHX_ int fd, int read_size){
 MODULE = IO::FD		PACKAGE = IO::FD		
 
 INCLUDE: const-xs.inc
+
+BOOT:
+
+	//boot strap the mutliple accept buffer
+	accept_multiple_next_addr=newSV(sizeof(struct sockaddr));
+	accept_multiple_next_buf=(struct sockaddr *)SvPVX(accept_multiple_next_addr);
 
 #SOCKET
 #######
@@ -202,9 +210,7 @@ accept_multiple(new_fds, peers, listen_fd, nb_flag)
 	INIT:
 		struct sockaddr *packed_addr;
 		int ret;
-		SV *addr=NULL;//=newSV(sizeof(struct sockaddr));
 		SV *new_fd=NULL;
-		struct sockaddr *buf=NULL;//(struct sockaddr *)SvPVX(addr);
 		unsigned int len=sizeof(struct sockaddr);
 
 		int count=0;
@@ -217,9 +223,7 @@ accept_multiple(new_fds, peers, listen_fd, nb_flag)
 
 	PPCODE:
 
-		addr=newSV(sizeof(struct sockaddr));
-		buf=(struct sockaddr *)SvPVX(addr);
-		while((ret=accept(SvIV(listen_fd), buf, &len))>=0){
+		while((ret=accept(SvIV(listen_fd),accept_multiple_next_buf, &len))>=0){
 
 	#if defined(IO_FD_OS_LINUX) 
 			if(nb_flag){
@@ -234,23 +238,18 @@ accept_multiple(new_fds, peers, listen_fd, nb_flag)
 			}
 
 	#endif
-			SvPOK_on(addr);
-			SvCUR_set(addr, sizeof(struct sockaddr));
+			SvPOK_on(accept_multiple_next_addr);
+			SvCUR_set(accept_multiple_next_addr, sizeof(struct sockaddr));
 
-			//addr=newSVpvn((char *)buf, len);
-			//SvPOK_only (addr);
-			//SvCUR_set(addr, len);
 			new_fd=newSViv(ret);
 			av_push(new_fds, new_fd);
-			av_push(peers, addr);
+			av_push(peers,accept_multiple_next_addr);
 			count++;
-			addr=newSV(sizeof(struct sockaddr));
-			buf=(struct sockaddr *)SvPVX(addr);
+
+			//Allocate a buffer for next attempt. Could be another call
+			accept_multiple_next_addr=newSV(sizeof(struct sockaddr));
+			accept_multiple_next_buf=(struct sockaddr *)SvPVX(accept_multiple_next_addr);
 		}	
-		if(ret<0){
-			//Release unused buffer
-			SvREFCNT_dec(addr);
-		}
 		//If new_fd is still null, we failed all to gether
 		mXPUSHs((new_fd==NULL) ?&PL_sv_undef :newSViv(count));
 		XSRETURN(1);
