@@ -223,7 +223,6 @@ accept_multiple(new_fds, peers, listen_fd)
 	AV* new_fds
 	AV* peers
 	SV* listen_fd
-	IV nb_flag
 	PROTOTYPE:\@\@$
 
 	INIT:
@@ -736,7 +735,7 @@ pipe(read_end,write_end)
 			RETVAL=&PL_sv_undef;
 		}
 		else{
-			#pipe returns 0 on success...
+			//pipe returns 0 on success...
 			RETVAL=newSViv(ret+1);
 			if(SvOK(read_end)){
 				sv_setiv(read_end, fds[0]);
