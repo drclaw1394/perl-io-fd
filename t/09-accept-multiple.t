@@ -69,7 +69,7 @@ sleep 1;
 my @fds;
 my @peers;
 
-ok defined IO::FD::accept_multiple @fds, @peers, $listener, 0;
+ok defined IO::FD::accept_multiple @fds, @peers, $listener;
 
 
 

@@ -81,6 +81,23 @@ SV * slurp(pTHX_ int fd, int read_size){
 #define KEVENT_S struct kevent
 #endif
 
+#define ADJUST_SOCKADDR_SIZE(addr) \
+	struct sockaddr * a=(struct sockaddr *)SvPVX(addr);\
+	switch(a->sa_family){\
+		case AF_INET:\
+			SvCUR_set(addr, sizeof(struct sockaddr_in));\
+			break;\
+		case AF_INET6:\
+			SvCUR_set(addr, sizeof(struct sockaddr_in6));\
+			break;\
+		case AF_UNIX:\
+			SvCUR_set(addr, sizeof(struct sockaddr_un));\
+			break;\
+		default:\
+			break;\
+	}\
+
+
 
 
 MODULE = IO::FD		PACKAGE = IO::FD		
@@ -90,7 +107,7 @@ INCLUDE: const-xs.inc
 BOOT:
 
 	//boot strap the mutliple accept buffer
-	accept_multiple_next_addr=newSV(sizeof(struct sockaddr));
+	accept_multiple_next_addr=newSV(sizeof(struct sockaddr_storage));
 	accept_multiple_next_buf=(struct sockaddr *)SvPVX(accept_multiple_next_addr);
 
 #SOCKET
@@ -170,9 +187,9 @@ accept(new_fd, listen_fd)
                 PREINIT:
                         struct sockaddr *packed_addr;
                         int ret;
-			SV *addr=newSV(sizeof(struct sockaddr));
+			SV *addr=newSV(sizeof(struct sockaddr_storage));
 			struct sockaddr *buf=(struct sockaddr *)SvPVX(addr);
-			unsigned int len=sizeof(struct sockaddr);
+			unsigned int len=sizeof(struct sockaddr_storage);
 
 			
 
@@ -183,7 +200,8 @@ accept(new_fd, listen_fd)
 		}
 		else {
 			SvPOK_on(addr);
-			SvCUR_set(addr,sizeof(struct sockaddr));
+			//SvCUR_set(addr, sizeof(struct sockaddr_storage));
+			ADJUST_SOCKADDR_SIZE(addr);
 			RETVAL=addr;
 			if(SvOK(new_fd)){
 				sv_setiv(new_fd, ret);		
@@ -191,6 +209,7 @@ accept(new_fd, listen_fd)
 			else{
 				new_fd=newSViv(ret);
 			}
+			//Adjust the current size of the buffer based on socket family
 		}
 	
 	
@@ -200,18 +219,18 @@ accept(new_fd, listen_fd)
 
 
 SV*
-accept_multiple(new_fds, peers, listen_fd, nb_flag)
+accept_multiple(new_fds, peers, listen_fd)
 	AV* new_fds
 	AV* peers
 	SV* listen_fd
 	IV nb_flag
-	PROTOTYPE:\@\@$$
+	PROTOTYPE:\@\@$
 
 	INIT:
 		struct sockaddr *packed_addr;
 		int ret;
 		SV *new_fd=NULL;
-		unsigned int len=sizeof(struct sockaddr);
+		unsigned int len=sizeof(struct sockaddr_storage);
 
 		int count=0;
 	#if defined(IO_FD_OS_LINUX) 
@@ -226,28 +245,25 @@ accept_multiple(new_fds, peers, listen_fd, nb_flag)
 		while((ret=accept(SvIV(listen_fd),accept_multiple_next_buf, &len))>=0){
 
 	#if defined(IO_FD_OS_LINUX) 
-			if(nb_flag){
-				flags=fcntl(ret, F_GETFD);
-				fcntl(ret, F_SETFD, flags|O_NONBLOCK);
-			}
+			flags=fcntl(ret, F_GETFD);
+			fcntl(ret, F_SETFD, flags|O_NONBLOCK);
 	#endif
 	#if defined(IO_FD_OS_DARWIN)  || defined(IO_FD_OS_BSD)
-			if(!nb_flag){
-				flags=fcntl(ret, F_GETFD);
-				fcntl(ret, F_SETFD, flags|O_NONBLOCK);
-			}
+			//flags=fcntl(ret, F_GETFD);
+			//fcntl(ret, F_SETFD, flags|O_NONBLOCK);
 
 	#endif
 			SvPOK_on(accept_multiple_next_addr);
-			SvCUR_set(accept_multiple_next_addr, sizeof(struct sockaddr));
+			SvCUR_set(accept_multiple_next_addr, sizeof(struct sockaddr_storage));
 
 			new_fd=newSViv(ret);
 			av_push(new_fds, new_fd);
 			av_push(peers,accept_multiple_next_addr);
 			count++;
+			ADJUST_SOCKADDR_SIZE(accept_multiple_next_addr);
 
 			//Allocate a buffer for next attempt. Could be another call
-			accept_multiple_next_addr=newSV(sizeof(struct sockaddr));
+			accept_multiple_next_addr=newSV(sizeof(struct sockaddr_storage));
 			accept_multiple_next_buf=(struct sockaddr *)SvPVX(accept_multiple_next_addr);
 		}	
 		//If new_fd is still null, we failed all to gether
@@ -1324,10 +1340,10 @@ recv(fd, data, len, flags)
 		}
 		buf = SvPOK(data) ? SvGROW(data,len+1) : NULL;
 
-		peer=newSV(sizeof(struct sockaddr));
+		peer=newSV(sizeof(struct sockaddr_storage));
 		peer_buf=(struct sockaddr *)SvPVX(peer);
 
-		addr_len=sizeof(struct sockaddr);
+		addr_len=sizeof(struct sockaddr_storage);
 		ret=recvfrom(fd, buf, len, flags, peer_buf, &addr_len);
 
 		if(ret<0){
@@ -1336,7 +1352,8 @@ recv(fd, data, len, flags)
 		else{
 			SvCUR_set(data,ret);
 			SvPOK_on(peer);
-			SvCUR_set(peer, addr_len);
+			//SvCUR_set(peer, addr_len);
+			ADJUST_SOCKADDR_SIZE(peer);
 			RETVAL=peer;
 		}
 	OUTPUT:
@@ -1392,9 +1409,9 @@ getpeername(fd)
 	
 	INIT:
 		int ret;
-		SV *addr=newSV(sizeof(struct sockaddr)+1);
+		SV *addr=newSV(sizeof(struct sockaddr_storage)+1);
 		struct sockaddr *buf=(struct sockaddr *)SvPVX(addr);
-		unsigned int len=sizeof(struct sockaddr);
+		unsigned int len=sizeof(struct sockaddr_storage);
 
 	CODE:
 		
@@ -1403,7 +1420,8 @@ getpeername(fd)
 			RETVAL=&PL_sv_undef;
 		}
 		else {
-			SvCUR_set(addr,len);
+			//SvCUR_set(addr,len);
+			ADJUST_SOCKADDR_SIZE(addr);
 			SvPOK_on(addr);
 
 			RETVAL=addr;
@@ -1418,9 +1436,9 @@ getsockname(fd)
 	
 	INIT:
 		int ret;
-		SV *addr=newSV(sizeof(struct sockaddr)+1);
+		SV *addr=newSV(sizeof(struct sockaddr_storage)+1);
 		struct sockaddr *buf=(struct sockaddr *)SvPVX(addr);
-		unsigned int len=sizeof(struct sockaddr);
+		unsigned int len=sizeof(struct sockaddr_storage);
 
 	CODE:
 		
@@ -1429,7 +1447,8 @@ getsockname(fd)
 			RETVAL=&PL_sv_undef;
 		}
 		else {
-			SvCUR_set(addr,len);
+			//SvCUR_set(addr,len);
+			ADJUST_SOCKADDR_SIZE(addr);
 			SvPOK_on(addr);
 
 			RETVAL=addr;
