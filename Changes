@@ -2,6 +2,8 @@ Revision history for Perl extension IO::FD.
 v0.2.0  2022-12-26
     [features]
     - Added accept4 function. Native on linux, emulates on darwin and bsd
+    - Added IO::FD::SOCK_NONBLOCK and IO::FD::SOCK_CLOEXEC constants for
+      darwin emulation of accept4 flags.
     - Added sendfile
 
     [changes]
