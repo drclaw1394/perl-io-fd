@@ -102,7 +102,14 @@ my $listen_cb=sub {
       }
     }
     elsif($fd == $accept4_fd){
-      if(defined ($peer =IO::FD::accept4 my $con, $fd, IO::FD::SOCK_NONBLOCK|IO::FD::SOCK_CLOEXEC)){
+	my $flags=0;
+	if($^O=~/darwin/){
+		$flags=IO::FD::SOCK_NONBLOCK|IO::FD::SOCK_CLOEXEC;
+	}
+	else{
+		$flags=SOCK_NONBLOCK|SOCK_CLOEXEC;
+	}
+      if(defined ($peer =IO::FD::accept4 my $con, $fd, $flags)){
         #Test that flags are applied
         my $non_block=IO::FD::fcntl $con, F_GETFL, 0;
         $non_block&=O_NONBLOCK;

@@ -382,7 +382,6 @@ Likely differences to Perl lstat for larger integer values
 TODO: fix this!
 
 
-
 =head2 Experimental
 
 These functions haven't really been tested, documented or finished. They exist

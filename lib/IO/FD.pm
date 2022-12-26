@@ -66,9 +66,25 @@ our @EXPORT = qw(
 
 our $VERSION = 'v0.2.0';
 
+use constant();
+use Socket qw<SOCK_NONBLOCK SOCK_CLOEXEC>;
+my $non_block;
+my $cloexec;
 #Define constants for non linux systems (looked up from a ubuntu machine...)
-use constant SOCK_NONBLOCK=>  0x00000800;  #Octal=>00004000;
-use constant SOCK_CLOEXEC=>   0x00080000;  #Octal=>02000000;
+BEGIN {
+	if($^O =~ /darwin/i){
+		#Make belive values
+		$cloexec=0x10000000;
+  		$non_block=0x20000000;
+		constant->import(SOCK_NONBLOCK=> $non_block);
+		constant->(SOCK_CLOEXEC=>  $cloexec);
+	}
+	else {
+		$cloexec=0;
+		$non_block=0;
+	}
+}
+
 
 
 sub fileno :prototype($) {

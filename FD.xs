@@ -20,9 +20,6 @@
 #include <sys/uio.h>
 #include <sys/types.h>
 
-//Define constants for non linux systems NOTE: OCTAL
-#define SOCK_NONBLOCK 00004000
-#define SOCK_CLOEXEC  02000000
 
 #endif
 
@@ -31,6 +28,12 @@
 #endif
 
 #include <sys/stat.h>
+
+#if defined(IO_FD_OS_DARWIN)
+//Make up constants for manipulating accept4, socketpair, and socket
+#define SOCK_NONBLOCK 0x10000000
+#define SOCK_CLOEXEC  0x20000000
+#endif
 
 //Read from an fd until eof or error condition
 //Returns SV containing all the data
@@ -865,8 +868,11 @@ sendfile(socket, source, len, offset)
     if(SvOK(socket) && SvIOK(socket) && SvOK(source) && SvIOK(source)){
         l=SvIV(len);
 	o=SvIV(offset);
-#if defined(IO_FD_OS_BSD)||defined(IO_FD_OS_DARWIN)
+#if defined(IO_FD_OS_DARWIN)
         ret=sendfile(SvIV(source),SvIV(socket),SvIV(offset),&l, NULL, 0);
+#endif
+#if defined(IO_FD_OS_BSD)
+        ret=sendfile(SvIV(source),SvIV(socket),SvIV(offset),l, NULL, 0,0);
 #endif
 #if defined(IO_FD_OS_LINUX)
         ret=sendfile(SvIV(socket), SvIV(source), &o,l);
