@@ -64,7 +64,11 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '0.1.4';
+our $VERSION = 'v0.2.0';
+
+#Define constants for non linux systems (looked up from a ubuntu machine...)
+use constant SOCK_NONBLOCK=>  0x00000800;  #Octal=>00004000;
+use constant SOCK_CLOEXEC=>   0x00080000;  #Octal=>02000000;
 
 
 sub fileno :prototype($) {

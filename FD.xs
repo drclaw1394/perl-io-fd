@@ -17,6 +17,17 @@
 
 #if defined(IO_FD_OS_DARWIN) || defined(IO_FD_OS_BSD)
 #include <sys/event.h>
+#include <sys/uio.h>
+#include <sys/types.h>
+
+//Define constants for non linux systems NOTE: OCTAL
+#define SOCK_NONBLOCK 00004000
+#define SOCK_CLOEXEC  02000000
+
+#endif
+
+#if defined(IO_FD_OS_LINUX)
+#include <sys/sendfile.h>
 #endif
 
 #include <sys/stat.h>
@@ -59,6 +70,8 @@ SV * slurp(pTHX_ int fd, int read_size){
 
 	SV *accept_multiple_next_addr;
 	struct sockaddr *accept_multiple_next_buf;
+
+  SV *max_file_desc;
 
 #if defined(IO_FD_OS_DARWIN)|| defined(IO_FD_OS_BSD)
 #define IO_FD_ATIME atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
@@ -110,6 +123,9 @@ BOOT:
 	accept_multiple_next_addr=newSV(sizeof(struct sockaddr_storage));
 	accept_multiple_next_buf=(struct sockaddr *)SvPVX(accept_multiple_next_addr);
 
+  //locate the $^F variable 
+  //max_file_desc=get_sv("^F",0);
+
 #SOCKET
 #######
 
@@ -136,6 +152,9 @@ socket(sock,af,type,proto)
 				#need to set error code here
 			}
 			else{
+        if(s>PL_maxsysfd){
+          fcntl(s, F_SETFD, FD_CLOEXEC);
+        }
 				RETVAL=newSViv(s);
 				if(SvOK(sock)){
 					sv_setiv(sock,s);
@@ -155,67 +174,138 @@ socket(sock,af,type,proto)
 
 SV *
 listen(listener,backlog)
-	int listener;
+	SV * listener;
 	int backlog;
 
 
 	INIT:
 		int ret;
 
-	CODE:
-
-		ret=listen(listener, backlog);
+	PPCODE:
+    if(SvOK(listener) && SvIOK(listener)){
+		ret=listen(SvIV(listener), backlog);
 
 		if(ret<0){
-			RETVAL=&PL_sv_undef;
+			//RETVAL=&PL_sv_undef;
+      XSRETURN_UNDEF;
 		}
 		else{
-			RETVAL=newSViv(ret+1);
+		  //RETVAL=newSViv(ret+1);
+      XSRETURN_IV(ret+1);
 		}
+  }
+  else{
+    XSRETURN_UNDEF;
+  }
 
-	OUTPUT:
-		RETVAL
 
 #ACCEPT
 #######
 
 SV*
 accept(new_fd, listen_fd)
-		SV* new_fd
-                int listen_fd
+  SV* new_fd
+  SV* listen_fd
 
-                PREINIT:
-                        struct sockaddr *packed_addr;
-                        int ret;
+  PREINIT:
+      struct sockaddr *packed_addr;
+      int ret;
 			SV *addr=newSV(sizeof(struct sockaddr_storage));
 			struct sockaddr *buf=(struct sockaddr *)SvPVX(addr);
 			unsigned int len=sizeof(struct sockaddr_storage);
 
 			
 
-                CODE:
-                ret=accept(listen_fd, buf, &len);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else {
-			SvPOK_on(addr);
-			//SvCUR_set(addr, sizeof(struct sockaddr_storage));
-			ADJUST_SOCKADDR_SIZE(addr);
-			RETVAL=addr;
-			if(SvOK(new_fd)){
-				sv_setiv(new_fd, ret);		
-			}
-			else{
-				new_fd=newSViv(ret);
-			}
-			//Adjust the current size of the buffer based on socket family
-		}
+  CODE:
+    if(SvOK(listen_fd)&& SvIOK(listen_fd)){
+      ret=accept(SvIV(listen_fd), buf, &len);
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else {
+        if(ret>PL_maxsysfd){
+          fcntl(ret, F_SETFD, FD_CLOEXEC);
+        }
+        SvPOK_on(addr);
+        //SvCUR_set(addr, sizeof(struct sockaddr_storage));
+        ADJUST_SOCKADDR_SIZE(addr);
+        RETVAL=addr;
+        if(SvOK(new_fd)){
+          sv_setiv(new_fd, ret);		
+        }
+        else{
+          new_fd=newSViv(ret);
+        }
+        //Adjust the current size of the buffer based on socket family
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 	
 	
-                OUTPUT:
-			RETVAL
-			new_fd
+  OUTPUT:
+    RETVAL
+    new_fd
+
+SV *
+accept4(new_fd, listen_fd, flags)
+  SV *new_fd
+  SV *listen_fd
+  UV flags
+
+  INIT:
+      struct sockaddr *packed_addr;
+      int ret;
+      int ret2;
+			SV *addr=newSV(sizeof(struct sockaddr_storage));
+			struct sockaddr *buf=(struct sockaddr *)SvPVX(addr);
+			unsigned int len=sizeof(struct sockaddr_storage);
+
+  CODE:
+    if(SvOK(listen_fd) && SvIOK(listen_fd)){
+#if defined(IO_FD_OS_LINUX)
+      ret=accept4(SvIV(listen_fd), buf, &len, flags);
+#endif
+#if defined(IO_FD_OS_DARWIN) || defined(IO_FD_OS_BSD)
+      ret=accept(SvIV(listen_fd), buf, &len);
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else {
+        if(SOCK_NONBLOCK & flags){
+          //Assumes no other status flags are set
+          fcntl(ret, F_SETFL, O_NONBLOCK);
+        }
+        if(SOCK_CLOEXEC & flags){
+          fcntl(ret, F_SETFD, FD_CLOEXEC);
+        }
+#endif
+        if(ret<0){
+          RETVAL=&PL_sv_undef;
+        }
+        else {
+          SvPOK_on(addr);
+          ADJUST_SOCKADDR_SIZE(addr);
+          RETVAL=addr;
+          if(SvOK(new_fd)){
+            sv_setiv(new_fd, ret);		
+          }
+          else{
+            new_fd=newSViv(ret);
+          }
+          //mXPUSHs(addr);
+          //XSRETURN(1);
+        }
+      }
+    }
+    else{
+      RETVAL=&PL_sv_undef;
+    }
+
+  OUTPUT:
+    RETVAL
+    new_fd
 
 
 SV*
@@ -232,26 +322,23 @@ accept_multiple(new_fds, peers, listen_fd)
 		unsigned int len=sizeof(struct sockaddr_storage);
 
 		int count=0;
-	#if defined(IO_FD_OS_LINUX) 
+#if defined(IO_FD_OS_LINUX) 
 		int flags;
-	#endif
+#endif
 
 
-	#
 
 	PPCODE:
-
+#if defined(IO_FD_OS_LINUX) 
+		while((ret=accept4(SvIV(listen_fd),accept_multiple_next_buf, &len,SOCK_NONBLOCK))>=0){
+			//fcntl(ret, F_SETFL, O_NONBLOCK);
+#endif
+#if defined(IO_FD_OS_DARWIN)  || defined(IO_FD_OS_BSD)
 		while((ret=accept(SvIV(listen_fd),accept_multiple_next_buf, &len))>=0){
-
-	#if defined(IO_FD_OS_LINUX) 
-			flags=fcntl(ret, F_GETFD);
-			fcntl(ret, F_SETFD, flags|O_NONBLOCK);
-	#endif
-	#if defined(IO_FD_OS_DARWIN)  || defined(IO_FD_OS_BSD)
-			//flags=fcntl(ret, F_GETFD);
-			//fcntl(ret, F_SETFD, flags|O_NONBLOCK);
-
-	#endif
+#endif
+      if(ret>PL_maxsysfd){
+        fcntl(ret, F_SETFD, FD_CLOEXEC);
+      }
 			SvPOK_on(accept_multiple_next_addr);
 			SvCUR_set(accept_multiple_next_addr, sizeof(struct sockaddr_storage));
 
@@ -341,6 +428,9 @@ sysopen(fd, path, mode, ... )
 				RETVAL=&PL_sv_undef;
 			}
 			else{
+        if(f>PL_maxsysfd){
+          fcntl(f, F_SETFD, FD_CLOEXEC);
+        }
 				RETVAL=newSViv(f);
 				if(SvOK(fd)){
 					sv_setiv(fd,f);
@@ -371,6 +461,9 @@ sysopen4(fd, path, mode, permissions)
 				RETVAL=&PL_sv_undef;
 			}
 			else{
+        if(fd>PL_maxsysfd){
+          fcntl(fd, F_SETFD, FD_CLOEXEC);
+        }
 				RETVAL=newSViv(fd);
 			}
 
@@ -489,7 +582,7 @@ sysread3(fd, data, len)
 			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
 
 
-			ret=read(fd, buf, len);
+			ret=read(SvIV(fd), buf, len);
 			if(ret<0){
 
 				//RETVAL=&PL_sv_undef;
@@ -546,7 +639,7 @@ sysread4(fd, data, len, offset)
 					
 			buf+=offset;
 
-                        ret=read(fd, buf, len);
+                        ret=read(SvIV(fd), buf, len);
 			if(ret<0){
 
 				//RETVAL=&PL_sv_undef;
@@ -751,6 +844,41 @@ syswrite4(fd,data,len,offset)
       XSRETURN_UNDEF;
     }
 
+
+#SENDFILE
+#########
+
+SV *
+sendfile(socket, source, len, offset)
+  SV * socket
+  SV * source
+  SV * len 
+  SV * offset
+
+  INIT:
+
+    off_t l;
+    int ret;
+
+  PPCODE:
+    if(SvOK(socket) && SvIOK(socket) && SvOK(source) && SvIOK(source)){
+        l=SvIV(len);
+        ret=sendfile(SvIV(source),SvIV(socket),SvIV(offset),&l, NULL, 0);
+        if(ret<0){
+          //Return undef on error
+          XSRETURN_UNDEF;
+        }
+        //Otherwise return the number of bytes transfered
+        ret=l;
+        XSRETURN_IV(ret);
+
+      }
+      else {
+        XSRETURN_UNDEF;
+      }
+
+
+
 #PIPE
 ######
 
@@ -773,6 +901,12 @@ pipe(read_end,write_end)
 			RETVAL=&PL_sv_undef;
 		}
 		else{
+      if(fds[0]>PL_maxsysfd){
+        fcntl(fds[0], F_SETFD, FD_CLOEXEC);
+      }
+      if(fds[1]>PL_maxsysfd){
+        fcntl(fds[1], F_SETFD, FD_CLOEXEC);
+      }
 			//pipe returns 0 on success...
 			RETVAL=newSViv(ret+1);
 			if(SvOK(read_end)){
@@ -828,8 +962,8 @@ bind(fd, address)
 
 SV*
 socketpair(fd1,fd2, domain, type, protocol)
-	int fd1
-	int fd2
+	SV *fd1
+	SV *fd2
 	int domain
 	int type
 	int protocol
@@ -840,15 +974,27 @@ socketpair(fd1,fd2, domain, type, protocol)
 		int fds[2];
 
 	CODE:
-		#TODO need to emulate via tcp to localhost for non unix
+		//TODO need to emulate via tcp to localhost for non unix
 		ret=socketpair(domain, type, protocol, fds);
 		if(ret<0){
 			RETVAL=&PL_sv_undef;
 		}
 		else{
+      if(!SvOK(fd1)){
+          fd1=newSViv(fds[0]);
+      }
+      if(!SvOK(fd2)){
+          fd2=newSViv(fds[1]);
+      }
 			RETVAL=newSViv(ret+1);
-			fd1=fds[0];
-			fd2=fds[1];
+      if(fds[0]>PL_maxsysfd){
+        fcntl(fds[0], F_SETFD, FD_CLOEXEC);
+      }
+      if(fds[1]>PL_maxsysfd){
+        fcntl(fds[1], F_SETFD, FD_CLOEXEC);
+      }
+			//fd1=fds[0];
+			//fd2=fds[1];
 		}
 	OUTPUT:
 		RETVAL
@@ -920,6 +1066,9 @@ dup2(fd1,fd2)
 			RETVAL=&PL_sv_undef;
 		}
 		else{
+      if(ret>PL_maxsysfd){
+        fcntl(ret, F_SETFD, FD_CLOEXEC);
+      }
 			RETVAL=newSViv(ret);
 		}
 
@@ -1295,6 +1444,10 @@ mkstemp(template)
 			//mXPUSHs(&PL_sv_undef);
 		}	
 		else{
+
+      if(ret>PL_maxsysfd){
+        fcntl(ret, F_SETFD, FD_CLOEXEC);
+      }
 			switch(GIMME_V){
 				case G_SCALAR:
 					mXPUSHs(newSViv(ret));
@@ -1496,22 +1649,27 @@ getsockname(fd)
 
 void
 shutdown(fd, how)
-	int fd
+	SV *fd
 	int how
 
 	INIT:
 
 	  int ret;
 	PPCODE:
-		ret=shutdown(fd, how);
+  if(SvOK(fd)&& SvIOK(fd)){ 
+    ret=shutdown(SvIV(fd), how);
 
-		if(ret<0){
-			XSRETURN_UNDEF;
-		}
-		else{
-			mXPUSHs(newSViv(1));
-			XSRETURN(1);
-		}
+    if(ret<0){
+      XSRETURN_UNDEF;
+    }
+    else{
+      mXPUSHs(newSViv(1));
+      XSRETURN(1);
+    }
+  }
+  else{
+      XSRETURN_UNDEF;
+  }
 
 void
 stat(target)
