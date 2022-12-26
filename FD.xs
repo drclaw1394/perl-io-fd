@@ -415,8 +415,8 @@ sockatmark(fd)
 SV*
 sysopen(fd, path, mode, ... )
  		SV* fd
-                char *path
-                int mode
+    char *path
+    int mode
 
 		PREINIT:
 			int f;
@@ -450,49 +450,61 @@ sysopen(fd, path, mode, ... )
 
 SV*
 sysopen4(fd, path, mode, permissions)
- 		int fd
-                char *path
-                int mode
-                int permissions
+ 		SV *fd
+    char *path
+    int mode
+    int permissions
 
 		PREINIT:
 			int f;
 
 		CODE:
-			fd=open(path, mode, permissions);
+			f=open(path, mode, permissions);
 			if(fd<0){
 				RETVAL=&PL_sv_undef;
 			}
 			else{
-        if(fd>PL_maxsysfd){
-          fcntl(fd, F_SETFD, FD_CLOEXEC);
+        if(f>PL_maxsysfd){
+          fcntl(f, F_SETFD, FD_CLOEXEC);
         }
-				RETVAL=newSViv(fd);
+				RETVAL=newSViv(f);
+				if(SvOK(fd)){
+					sv_setiv(fd,f);
+				}
+				else {
+					fd= newSViv(f);
+				}
 			}
 
 		OUTPUT:
 			RETVAL
 			fd
+
 #CLOSE
 ######
 
 SV*
 close(fd)
-	int fd;
+	SV* fd;
 
 	INIT:
 		int ret;
 
 	CODE:
-		ret=close(fd);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else{
-			#close returns 0 on success.. which is false in perl 
-			#so increment
-			RETVAL=newSViv(ret+1);
-		}
+    if(SvOK(fd) && SvIOK(fd)){
+      ret=close(SvIV(fd));
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else{
+#close returns 0 on success.. which is false in perl 
+#so increment
+        RETVAL=newSViv(ret+1);
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 	OUTPUT:
 		RETVAL
 
@@ -503,8 +515,8 @@ close(fd)
 
 SV*
 sysread(fd, data, len, ...)
-                SV* fd;
-                SV* data
+    SV* fd;
+    SV* data
 		int len
 		INIT:
 			int ret;
@@ -607,9 +619,9 @@ sysread3(fd, data, len)
 
 SV*
 sysread4(fd, data, len, offset)
-                SV* fd;
-                SV* data
-                int len
+    SV* fd;
+    SV* data
+    int len
 		int offset
 
 		INIT:
@@ -946,8 +958,8 @@ pipe(read_end,write_end)
 
 SV*
 bind(fd, address)
-	int fd
-	SV*address
+	SV *fd
+	SV *address
 	
 	ALIAS: sysbind=1
 
@@ -955,19 +967,24 @@ bind(fd, address)
 		int ret;
 		int len=SvOK(address)?SvCUR(address):0;
 		struct sockaddr *addr=(struct sockaddr *)SvPVX(address);
+
 	CODE:
-		//fprintf(stderr, "bind fd: %d\n",fd);
-		//fprintf(stderr, "bind len: %d\n",len);
-		ret=bind(fd, addr, len);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else{
-			RETVAL=newSViv(ret+1);
-		}
+    if(SvOK(fd)  && SvIOK(fd)){
+      ret=bind(SvIV(fd), addr, len);
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else{
+        RETVAL=newSViv(ret+1);
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 	
 	OUTPUT:
 		RETVAL
+
 #SOCKETPAIR
 ###########
 # TODO: 
@@ -1019,7 +1036,7 @@ socketpair(fd1,fd2, domain, type, protocol)
 
 SV*
 sysseek(fd,offset,whence)
-	int fd;
+	SV *fd;
 	int offset;
 	int whence;
 
@@ -1027,14 +1044,18 @@ sysseek(fd,offset,whence)
 		int ret;
 
 	CODE:
-
-		ret=lseek(fd, offset,whence);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else{
-			RETVAL=newSViv(ret);
-		}
+    if(SvOK(fd) && SvIOK(fd)){
+      ret=lseek(SvIV(fd), offset, whence);
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else{
+        RETVAL=newSViv(ret);
+      }
+    }
+    else{
+      RETVAL=&PL_sv_undef;
+    }
 
 	OUTPUT:
 		RETVAL
@@ -1044,19 +1065,24 @@ sysseek(fd,offset,whence)
 
 SV*
 dup(fd)
-	int fd;
+	SV *fd;
 
 	INIT:
 		int ret;
 
 	CODE:
-		ret=dup(fd);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else{
-			RETVAL=newSViv(ret);
-		}
+    if(SvOK(fd) && SvIOK(fd)){
+      ret=dup(SvIV(fd));
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else{
+        RETVAL=newSViv(ret);
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 
 	OUTPUT:
 		RETVAL
@@ -1067,33 +1093,38 @@ dup(fd)
 
 SV*
 dup2(fd1,fd2)
-	int fd1
-	int fd2
+	SV *fd1
+	SV *fd2
 
 	INIT: 
 		int ret;
 
 	CODE:
-		ret=dup2(fd1,fd2);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else{
-      if(ret>PL_maxsysfd){
-        fcntl(ret, F_SETFD, FD_CLOEXEC);
+    if(SvOK(fd1) && SvOK(fd2)){
+      ret=dup2(SvIV(fd1),SvIV(fd2));
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
       }
-			RETVAL=newSViv(ret);
-		}
+      else{
+        if(ret>PL_maxsysfd){
+          fcntl(ret, F_SETFD, FD_CLOEXEC);
+        }
+        RETVAL=newSViv(ret);
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 
 	OUTPUT:
-
 		RETVAL
+    
 #FCNTL
 ######
 
 SV*
 fcntl(fd, cmd, arg)
-	int fd
+	SV *fd
 	int cmd
 	SV* arg
 
@@ -1103,28 +1134,33 @@ fcntl(fd, cmd, arg)
 	INIT:
 		int ret;
 	CODE:
-		#if arg is numeric, call with iv
-		#otherwise we pass pointers and hope for the best
-		if(SvOK(arg)){
-			if(SvIOK(arg)){
-				#fprintf(stderr, "PROCESSING ARG AS NUMBER\n");
-				ret=fcntl(fd,cmd, SvIV(arg));
-			}else if(SvPOK(arg)){
-				#fprintf(stderr, "PROCESSING ARG AS STRING\n");
-				ret=fcntl(fd,cmd,SvPVX(arg));
-			}
-			else {
-				#error
-				#fprintf(stderr, "PROCESSING ARG AS UNKOWN\n");
-				ret=-1;
-			}
-			if(ret==-1){
-				RETVAL=&PL_sv_undef;
-			}
-			else {
-				RETVAL=newSViv(ret);
-			}
-		}
+    if(SvOK(fd) && SvIOK(fd)){
+      //if arg is numeric, call with iv
+      //otherwise we pass pointers and hope for the best
+      if(SvOK(arg)){
+        if(SvIOK(arg)){
+          //fprintf(stderr, "PROCESSING ARG AS NUMBER\n");
+          ret=fcntl(SvIV(fd),cmd, SvIV(arg));
+        }else if(SvPOK(arg)){
+          //fprintf(stderr, "PROCESSING ARG AS STRING\n");
+          ret=fcntl(SvIV(fd),cmd,SvPVX(arg));
+        }
+        else {
+          //error
+          //fprintf(stderr, "PROCESSING ARG AS UNKOWN\n");
+          ret=-1;
+        }
+        if(ret==-1){
+          RETVAL=&PL_sv_undef;
+        }
+        else {
+          RETVAL=newSViv(ret);
+        }
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 
 	OUTPUT:
 		RETVAL
@@ -1135,7 +1171,7 @@ fcntl(fd, cmd, arg)
 
 SV*
 ioctl(fd, request, arg)
-	int fd
+	SV *fd
 	int request
 	int arg
 
@@ -1152,7 +1188,7 @@ ioctl(fd, request, arg)
 ############
 SV*
 getsockopt(fd, level, option) 
-	int fd
+	SV *fd
 	int level
 	int option
 
@@ -1163,21 +1199,27 @@ getsockopt(fd, level, option)
 		SV *buffer;
 
 	CODE:
-		buffer=newSV(257);
-		SvPOK_on(buffer);
-		buf=SvPVX(buffer);
-		len=256;
+    if(SvOK(fd) && SvIOK(fd)){
+      buffer=newSV(257);
+      SvPOK_on(buffer);
+      buf=SvPVX(buffer);
+      len=256;
 
-		ret=getsockopt(fd,level, option, buf, &len);	
+      ret=getsockopt(SvIV(fd),level, option, buf, &len);	
 
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else {
-			SvCUR_set(buffer, len);
-			*SvEND(buffer)='\0';
-			RETVAL=buffer;
-		}
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else {
+        SvCUR_set(buffer, len);
+        *SvEND(buffer)='\0';
+        RETVAL=buffer;
+      }
+    }
+    else{
+      RETVAL=&PL_sv_undef;
+    }
+    
 
 
 	OUTPUT:
@@ -1188,7 +1230,7 @@ getsockopt(fd, level, option)
 ###########
 SV*
 setsockopt(fd, level, option, buffer)
-	int fd
+	SV *fd
 	int level
 	int option
 	SV* buffer;
@@ -1202,81 +1244,55 @@ setsockopt(fd, level, option, buffer)
 
 
 	CODE:
-		if(SvOK(buffer)){
-			if(SvIOK(buffer)){
-				#fprintf(stderr, "SET SOCKOPT as integer\n");
-				//Do what perl does and convert integers
-				_buffer=newSV(sizeof(int));
-				len=sizeof(int);
-				
-				SvPOK_on(_buffer);
-				SvCUR_set(_buffer, len);
-				//*SvEND(_buffer)='\0';
-				buf=SvPVX(_buffer);
-				*((int *)buf)=SvIVX(buffer);
+    if(SvOK(fd) && SvIOK(fd)){
+      if(SvOK(buffer)){
+        if(SvIOK(buffer)){
+          //fprintf(stderr, "SET SOCKOPT as integer\n");
+          //Do what perl does and convert integers
+          _buffer=newSV(sizeof(int));
+          len=sizeof(int);
 
-			}
-			else if(SvPOK(buffer)){
-				#fprintf(stderr, "SET SOCKOPT as NON integer\n");
-				_buffer=buffer;
+          SvPOK_on(_buffer);
+          SvCUR_set(_buffer, len);
+          //*SvEND(_buffer)='\0';
+          buf=SvPVX(_buffer);
+          *((int *)buf)=SvIVX(buffer);
 
-			}
+        }
+        else if(SvPOK(buffer)){
+          //fprintf(stderr, "SET SOCKOPT as NON integer\n");
+          _buffer=buffer;
 
-			len=SvCUR(_buffer);
-			buf=SvPVX(_buffer);
-			ret=setsockopt(fd,level,option,buf, len);
-			if(ret<0){
-				//fprintf(stderr, "call failed\n");
-				RETVAL=&PL_sv_undef;
-			}
-			else{
-				//fprintf(stderr, "call succeeded\n");
-				RETVAL=newSViv(ret+1);
-			}
-			
-		}
-		else{
-			//fprintf(stderr, "no buffer");
-			RETVAL=&PL_sv_undef;
-		}	
+        }
 
+        len=SvCUR(_buffer);
+        buf=SvPVX(_buffer);
+        ret=setsockopt(SvIV(fd),level,option,buf, len);
+        if(ret<0){
+          //fprintf(stderr, "call failed\n");
+          RETVAL=&PL_sv_undef;
+        }
+        else{
+          //fprintf(stderr, "call succeeded\n");
+          RETVAL=newSViv(ret+1);
+        }
+
+      }
+      else{
+        //fprintf(stderr, "no buffer");
+        RETVAL=&PL_sv_undef;
+      }	
+
+    }
+    else{
+      RETVAL=&PL_sv_undef;
+    }
 
 		
 
 	OUTPUT:
 		RETVAL
 
-        ##########################################################
-        # #FILENO                                                #
-        # #######                                                #
-        #                                                        #
-        # SV *                                                   #
-        # fileno (fd_fh)                                         #
-        #         SV *fd_fh;                                     #
-        #                                                        #
-        #         INIT:                                          #
-        #                 int ret;                               #
-        #                                                        #
-        #         CODE:                                          #
-        #                 if(!SvOK(fd_fh)){                      #
-        #                         RETVAL=&PL_sv_undef;           #
-        #                 }                                      #
-        #                 else{                                  #
-        #                         if(SvIOK(fd_fh)){              #
-        #                                 //treat as integer fd  #
-        #                                 RETVAL=newSVsv(fd_fh); #
-        #                         }                              #
-        #                         else{                          #
-        #                                 //assume glob          #
-        #                                 REVAL=GvIO             #
-        #                         }                              #
-        #                 }                                      #
-        #                                                        #
-        #                                                        #
-        #         OUTPUT:                                        #
-        #                 RETVAL                                 #
-        #                                                        #
-        ##########################################################
 
 
 #SELECT
@@ -1524,7 +1540,7 @@ mktemp(template)
 
 SV*
 recv(fd, data, len, flags)
-	int fd
+	SV *fd
 	SV *data
 	int len
 	int flags
@@ -1537,34 +1553,39 @@ recv(fd, data, len, flags)
 		char *buf;
 
 	CODE:
-		//Makesure the buffer exists and is large enough to recv
-		if(!SvOK(data)){
-			data=newSV(len);
-		}
-		buf = SvPOK(data) ? SvGROW(data,len+1) : NULL;
+    if(SvOK(fd) && SvIOK(fd)){
+      //Makesure the buffer exists and is large enough to recv
+      if(!SvOK(data)){
+        data=newSV(len);
+      }
+      buf = SvPOK(data) ? SvGROW(data,len+1) : NULL;
 
-		peer=newSV(sizeof(struct sockaddr_storage));
-		peer_buf=(struct sockaddr *)SvPVX(peer);
+      peer=newSV(sizeof(struct sockaddr_storage));
+      peer_buf=(struct sockaddr *)SvPVX(peer);
 
-		addr_len=sizeof(struct sockaddr_storage);
-		ret=recvfrom(fd, buf, len, flags, peer_buf, &addr_len);
+      addr_len=sizeof(struct sockaddr_storage);
+      ret=recvfrom(SvIV(fd), buf, len, flags, peer_buf, &addr_len);
 
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else{
-			SvCUR_set(data,ret);
-			SvPOK_on(peer);
-			//SvCUR_set(peer, addr_len);
-			ADJUST_SOCKADDR_SIZE(peer);
-			RETVAL=peer;
-		}
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else{
+        SvCUR_set(data,ret);
+        SvPOK_on(peer);
+        //SvCUR_set(peer, addr_len);
+        ADJUST_SOCKADDR_SIZE(peer);
+        RETVAL=peer;
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 	OUTPUT:
 		RETVAL
 
 SV*
 send(fd,data,flags, ...)
-	int fd
+	SV *fd
 	SV* data
 	int flags
 
@@ -1578,37 +1599,43 @@ send(fd,data,flags, ...)
 
 		
 	CODE:
-		if(SvOK(data) && SvPOK(data)){
-			if((items == 4) && SvOK(ST(3)) && SvPOK(ST(3))){
-				//Do sendto
-				len=SvCUR(data);
-				buf=SvPVX(data);
+    if(SvOK(fd) && SvIOK(fd)){
+      if(SvOK(data) && SvPOK(data)){
+        if((items == 4) && SvOK(ST(3)) && SvPOK(ST(3))){
+          //Do sendto
+          len=SvCUR(data);
+          buf=SvPVX(data);
 
-				dest=(struct sockaddr *)SvPVX(ST(3));
+          dest=(struct sockaddr *)SvPVX(ST(3));
 
-				ret=sendto(fd, buf, len, flags, dest, SvCUR(ST(3)));
-			}
-			else {
-				//Regular send
-				len=SvCUR(data);
-				buf=SvPVX(data);
-				ret=send(fd, buf, len, flags);
-			}
-		}
-		if(ret<0){
+          ret=sendto(SvIV(fd), buf, len, flags, dest, SvCUR(ST(3)));
+        }
+        else {
+          //Regular send
+          len=SvCUR(data);
+          buf=SvPVX(data);
+          ret=send(SvIV(fd), buf, len, flags);
+        }
+      }
+      if(ret<0){
 
-			RETVAL=&PL_sv_undef;
-		}
-		else{
-			RETVAL=newSViv(ret);
-		}
+        RETVAL=&PL_sv_undef;
+      }
+      else{
+        RETVAL=newSViv(ret);
+      }
+    }
+    else{
+      RETVAL=&PL_sv_undef;
+    }
+
 	OUTPUT:
 		RETVAL
 
 
 SV*
 getpeername(fd)
-	int fd;
+	SV *fd;
 	
 	INIT:
 		int ret;
@@ -1617,25 +1644,29 @@ getpeername(fd)
 		unsigned int len=sizeof(struct sockaddr_storage);
 
 	CODE:
-		
-		ret=getpeername(fd,buf,&len);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else {
-			//SvCUR_set(addr,len);
-			ADJUST_SOCKADDR_SIZE(addr);
-			SvPOK_on(addr);
+    if(SvOK(fd)&&SvIOK(fd)){	
+      ret=getpeername(SvIV(fd),buf,&len);
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else {
+        //SvCUR_set(addr,len);
+        ADJUST_SOCKADDR_SIZE(addr);
+        SvPOK_on(addr);
 
-			RETVAL=addr;
-		}
+        RETVAL=addr;
+      }
+    }
+    else {
+      RETVAL=&PL_sv_undef;
+    }
 	
 	OUTPUT:
 		RETVAL
 
 SV*
 getsockname(fd)
-	int fd;
+	SV *fd;
 	
 	INIT:
 		int ret;
@@ -1644,18 +1675,22 @@ getsockname(fd)
 		unsigned int len=sizeof(struct sockaddr_storage);
 
 	CODE:
-		
-		ret=getsockname(fd,buf,&len);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;
-		}
-		else {
-			//SvCUR_set(addr,len);
-			ADJUST_SOCKADDR_SIZE(addr);
-			SvPOK_on(addr);
+    if(SvOK(fd) && SvIOK(fd)){	
+      ret=getsockname(SvIV(fd),buf,&len);
+      if(ret<0){
+        RETVAL=&PL_sv_undef;
+      }
+      else {
+        //SvCUR_set(addr,len);
+        ADJUST_SOCKADDR_SIZE(addr);
+        SvPOK_on(addr);
 
-			RETVAL=addr;
-		}
+        RETVAL=addr;
+      }
+    }
+    else{
+      RETVAL=&PL_sv_undef;
+    }
 	
 	OUTPUT:
 		RETVAL
@@ -1970,7 +2005,7 @@ SV(size)
 
 void
 readline(fd)
-	int fd
+	SV *fd
 	
 	INIT:
 		SV *irs;
@@ -1982,50 +2017,55 @@ readline(fd)
 
 		int tmp;
 	PPCODE:
-		irs=get_sv("/",0);
-		if(irs){
-			#Found variable. Read records
-			if(SvOK(irs)){
-				if(SvROK(irs)){
-					//fprintf(stderr, "DOING RECORD READ\n");
-					//SLURP RECORDS
+    if(SvOK(fd)&& SvIOK(fd)){
+      irs=get_sv("/",0);
+      if(irs){
+  #Found variable. Read records
+        if(SvOK(irs)){
+          if(SvROK(irs)){
+            //fprintf(stderr, "DOING RECORD READ\n");
+            //SLURP RECORDS
 
-					SV* v=SvRV(irs);	//Dereference to get SV
-					tmp=SvIV(v);		//The integer value of the sv
-					buffer=newSV(tmp);	//Allocate buffer at record size
-					buf=SvPVX(buffer);	//Get the pointer we  need
-					ret=read(fd, buf, tmp);	//Do the read into buffer
-					//fprintf(stderr, "read return: %d\n", ret);
-					SvPOK_on(buffer);	//Make a string
-					if(ret>=0){
-						buf[ret]='\0';		//Set null just in case
-						SvCUR_set(buffer,ret);	//Set the length of the string
-						EXTEND(SP,1);		//Extend stack
-						mPUSHs(buffer);		//Push record
-						XSRETURN(1);
-					}
-					else {
-						XSRETURN_UNDEF;
-					}
+            SV* v=SvRV(irs);	//Dereference to get SV
+            tmp=SvIV(v);		//The integer value of the sv
+            buffer=newSV(tmp);	//Allocate buffer at record size
+            buf=SvPVX(buffer);	//Get the pointer we  need
+            ret=read(SvIV(fd), buf, tmp);	//Do the read into buffer
+            //fprintf(stderr, "read return: %d\n", ret);
+            SvPOK_on(buffer);	//Make a string
+            if(ret>=0){
+              buf[ret]='\0';		//Set null just in case
+              SvCUR_set(buffer,ret);	//Set the length of the string
+              EXTEND(SP,1);		//Extend stack
+              mPUSHs(buffer);		//Push record
+              XSRETURN(1);
+            }
+            else {
+              XSRETURN_UNDEF;
+            }
 
-				}
-				else {
-					Perl_croak( aTHX_ "IO::FD::readline does not split lines");
-				}
-			}
-			else{
+          }
+          else {
+            Perl_croak( aTHX_ "IO::FD::readline does not split lines");
+          }
+        }
+        else{
 
-				//fprintf(stderr, "DOING SLURP READ\n");
-				//SLURP entire file
-				EXTEND(SP,1);
-				PUSHs(slurp(aTHX_ fd, 4096));
-				XSRETURN(1);
-			}
-		}
-		else {
-			#not found.. this isn't good
+          //fprintf(stderr, "DOING SLURP READ\n");
+          //SLURP entire file
+          EXTEND(SP,1);
+          PUSHs(slurp(aTHX_ SvIV(fd), 4096));
+          XSRETURN(1);
+        }
+      }
+      else {
+        //not found.. this isn't good
 
-		}
+      }
+    }
+    else{
+      XSRETURN_UNDEF;
+    }
 
 
 #Naming
