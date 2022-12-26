@@ -72,12 +72,12 @@ my $non_block;
 my $cloexec;
 #Define constants for non linux systems (looked up from a ubuntu machine...)
 BEGIN {
-	if($^O =~ /darwin/i){
-		#Make belive values
-		$cloexec=0x10000000;
-  		$non_block=0x20000000;
-		constant->import(SOCK_NONBLOCK=> $non_block);
-		constant->(SOCK_CLOEXEC=>  $cloexec);
+  if($^O =~ /darwin/i){
+    #Make belive values
+    $cloexec=0x10000000;
+    $non_block=0x20000000;
+    constant->import(SOCK_NONBLOCK=> $non_block);
+    constant->import(SOCK_CLOEXEC=>  $cloexec);
 	}
 	else {
 		$cloexec=0;
