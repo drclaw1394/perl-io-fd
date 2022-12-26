@@ -223,8 +223,10 @@ From version B<v0.2.0>.  Implements the linux  C<accept4> syscall. On non linux
 systems this is emulated by calling C<fcntl> to set the FD_CLOEXEC flag and
 O_NONBLOCK status. Returns C<undef> on error, for the user to test C<$!>. 
 
-The flags argument can be the bitwise or'd value of C<IO::FD::SOCK_NONBLOCK>,
-C<IO::FD::SOCK_CLOEXEC>.
+The flags argument can be the bitwise or'ed value of C<SOCK_NONBLOCK> and
+C<SOCK_CLOEXEC> from the L<Socket> module on linux and bsd.  Darwin (macos)
+does not have these values. so please use C<IO::FD::SOCK_NONBLOCK>,
+C<IO::FD::SOCK_CLOEXEC> on that platform.
 
 Unlike other functions returning new file descriptors, this B<DOES NOT>
 automatically apply the CLOEXEC flag. The C<$flags> argument must be set
@@ -601,11 +603,11 @@ provide any networking/socket support.
 =head1 FUTURE WORK (IDEAS/TODO)
 
 
+  Further emulate linux/bsd SOCK_NONBLOCK and SOCK_CLOEXEC on darwin
 	Add more tests for stat and DWIM module
 	Wider compatability for older perls
 	Add More system functions which work with fds
 	Work with win32 sockets
-	Look into making a listen/accept fh/fd hybrid
 	Maybe make an IO::Handle sub class
 
 =head1 AUTHOR

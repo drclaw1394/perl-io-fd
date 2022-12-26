@@ -128,6 +128,13 @@ at [IO::FD::DWIM](https://metacpan.org/pod/IO%3A%3AFD%3A%3ADWIM) which is part o
 Currently this module is focused on Unix/Linux systems, as this is the natural
 habitat of a file descriptor.
 
+# IMPORTANT VERSION DIFFERENCES
+
+From `v0.2.0`  all functions creating a new fd behave more perlish and apply
+the CLOEXEC if larger than `$^F`  to prevent fd leakage.  This may result in
+an extra system call you didn't need if your program never calls `exec`. To
+disable this, increase the value of `$^F`.
+
 # WHERE SHOULD I USE THIS MODULE?
 
 ## Networking ... Oh Yes
@@ -157,10 +164,13 @@ file descriptors directly **you will loose**:
 
 - Buffering for file small read/write performance (via print and <FH>)
 - Automatic close when out of scope
-- Close on exec
 - Special variables not supported (ie '\_' in stat)
 - <FH> 'readline' support
 - IO::Handle inheritance
+
+**NOTE:** Since version **v0.2.0**  the close on exec flag is set for file
+descriptors created above the value in `$^F`. Previouse versions did not do
+this.
 
 # MOTIVATION
 
@@ -199,6 +209,30 @@ name.
 
 ### IO::FD::accept
 
+### IO::FD::accept4
+
+```perl
+my $ok=IO::FD::accept4 $new, $listen, $flags;
+
+Constants: IO::FD::SOCK_NONBLOCK, IO::FD::SOCK_CLOEXEC
+```
+
+From version **v0.2.0**.  Implements the linux  `accept4` syscall. On non linux
+systems this is emulated by calling `fcntl` to set the FD\_CLOEXEC flag and
+O\_NONBLOCK status. Returns `undef` on error, for the user to test `$!`. 
+
+The flags argument can be the bitwise or'ed value of `SOCK_NONBLOCK` and
+`SOCK_CLOEXEC` from the [Socket](https://metacpan.org/pod/Socket) module on linux and bsd.  Darwin (macos)
+does not have these values. so please use `IO::FD::SOCK_NONBLOCK`,
+`IO::FD::SOCK_CLOEXEC` on that platform.
+
+Unlike other functions returning new file descriptors, this **DOES NOT**
+automatically apply the CLOEXEC flag. The `$flags` argument must be set
+accordingly to achieve this.
+
+**NOTE:** On emulated systems, any errors reported are only from the accept
+call, not subsequent `fcntl` calls
+
 ### IO::FD::accept\_multiple
 
 ```perl
@@ -207,20 +241,20 @@ name.
     my $count=accept_multiple(@new_fds, @peers, $listen_sock);
 ```
 
-**Note:** DO NOT use this function on a blocking socket.
+**NOTE:** DO NOT use this function on a blocking socket.
 
 Accepts as many new connection sockets as available. The new sockets are stored
 in `new_fds`, which is an array, not a array ref. The corresponding peers to
 the connections are stored in `@peers`, also an array not a reference.
 
 `$listen_sock` is the file descriptor from which  the sockets are accepted
-from. It MUST be configured for non blocking  operation, otherwise your program
-will just loop forever in this function
+from. It **MUST** be configured for non blocking  operation, otherwise your
+program will just loop forever in this function
 
 Because this function will only works for non blocking listening sockets, the
-sockets/fds returned are forced into non blocking mode also. Than means on
-linux an explicit fcntl is called. On BSD type systems the socket will already
-be non blocking
+sockets/fds returned are forced into non blocking mode also. On BSD type
+systems the socket will already be non blocking. On linux systems the accept4
+call is used to set the SOCK\_NONBLOCK flag.
 
 Returns the number of sockets accepted until an error condition occurred.
 Returns `undef` if no sockets where accepted. Check the `$!` for normal
@@ -237,6 +271,19 @@ Note: Implements the integer shorthand as per perldoc -f setsockopt
 ### IO::FD::getpeername
 
 ### IO::FD::getsockname
+
+### IO::FD::sendfile
+
+```
+sendfile $socket, $source_fd, $length, $offset
+```
+
+Calls system sendfile. Returns `undef` on error or the number of bytes
+transferred otherwise. The error might be an **EAGAIN** for non blocking
+sockets. Please reference the manual page for sendfile on your system, but be
+mindful the position of the arguments might not match
+
+Currently advanced header/trailer features of BSD sendfile are not supported.
 
 ## File Maniupulation
 
@@ -261,7 +308,7 @@ Behaves like [File::Temp::mkstemp](https://metacpan.org/pod/File%3A%3ATemp%3A%3A
 
 Requires at least six 'X' characters at the end of the template
 
-NOTE: Currently returns `undef` as path in list context. Cross platform fd
+**NOTE:** Currently returns `undef` as path in list context. Cross platform fd
 paths are hard to extract.  TODO:  Fix this across platforms.
 
 ### IO::FD::sysseek
@@ -568,12 +615,12 @@ provide any networking/socket support.
 # FUTURE WORK (IDEAS/TODO)
 
 ```perl
-    Add more tests for stat and DWIM module
-    Wider compatability for older perls
-    Add More system functions which work with fds
-    Work with win32 sockets
-    Look into making a listen/accept fh/fd hybrid
-    Maybe make an IO::Handle sub class
+Further emulate linux/bsd SOCK_NONBLOCK and SOCK_CLOEXEC on darwin
+      Add more tests for stat and DWIM module
+      Wider compatability for older perls
+      Add More system functions which work with fds
+      Work with win32 sockets
+      Maybe make an IO::Handle sub class
 ```
 
 # AUTHOR
