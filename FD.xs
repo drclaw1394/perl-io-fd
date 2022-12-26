@@ -280,6 +280,7 @@ accept4(new_fd, listen_fd, flags)
         if(SOCK_CLOEXEC & flags){
           fcntl(ret, F_SETFD, FD_CLOEXEC);
         }
+	}
 #endif
         if(ret<0){
           RETVAL=&PL_sv_undef;
@@ -297,7 +298,6 @@ accept4(new_fd, listen_fd, flags)
           //mXPUSHs(addr);
           //XSRETURN(1);
         }
-      }
     }
     else{
       RETVAL=&PL_sv_undef;
@@ -858,16 +858,18 @@ sendfile(socket, source, len, offset)
   INIT:
 
     off_t l;
+	  off_t o;
     int ret;
 
   PPCODE:
     if(SvOK(socket) && SvIOK(socket) && SvOK(source) && SvIOK(source)){
         l=SvIV(len);
+	o=SvIV(offset);
 #if defined(IO_FD_OS_BSD)||defined(IO_FD_OS_DARWIN)
         ret=sendfile(SvIV(source),SvIV(socket),SvIV(offset),&l, NULL, 0);
 #endif
 #if defined(IO_FD_OS_LINUX)
-        ret=sendfile(SvIV(source),SvIV(socket),SvIV(offset),&l);
+        ret=sendfile(SvIV(socket), SvIV(source), &o,l);
 #endif
         if(ret<0){
           //Return undef on error

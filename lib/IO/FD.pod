@@ -277,7 +277,8 @@ Note: Implements the integer shorthand as per perldoc -f setsockopt
 
 Calls system sendfile. Returns C<undef> on error or the number of bytes
 transferred otherwise. The error might be an B<EAGAIN> for non blocking
-sockets. Please reference the manual page for sendfile on your system
+sockets. Please reference the manual page for sendfile on your system, but be
+mindful the position of the arguments might not match
 
 Currently advanced header/trailer features of BSD sendfile are not supported.
 
