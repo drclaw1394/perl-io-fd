@@ -863,7 +863,12 @@ sendfile(socket, source, len, offset)
   PPCODE:
     if(SvOK(socket) && SvIOK(socket) && SvOK(source) && SvIOK(source)){
         l=SvIV(len);
+#if defined(IO_FD_OS_BSD)||defined(IO_FD_OS_DARWIN)
         ret=sendfile(SvIV(source),SvIV(socket),SvIV(offset),&l, NULL, 0);
+#endif
+#if defined(IO_FD_OS_LINUX)
+        ret=sendfile(SvIV(source),SvIV(socket),SvIV(offset),&l);
+#endif
         if(ret<0){
           //Return undef on error
           XSRETURN_UNDEF;
