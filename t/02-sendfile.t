@@ -4,6 +4,7 @@ use feature ":all";
 use Test::More;
 use IO::FD;
 use Fcntl qw<O_NONBLOCK F_SETFL O_RDWR O_CREAT>;
+use POSIX qw<errno_h>;
 use Socket ":all";
 
 
@@ -85,5 +86,17 @@ IO::FD::close $s2;
 ok $data eq $recv_buffer, 'Data received intact';
 
 unlink $path;
+
+
+local $SIG{__WARN__}=sub {
+  ok $_[0] =~ /IO::FD::sendfile called with something other than a file descriptor/, "Got warning";
+};
+
+my $ret=IO::FD::sendfile "", undef, undef,undef;
+
+
+ok !defined($ret), "Undef for bad fd";
+
+ok $! == EBADF,"bad fd";
 
 done_testing;

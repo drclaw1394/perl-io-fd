@@ -528,47 +528,52 @@ sysread(fd, data, len, ...)
 
 			//grow scalar to fit potental read
       if(SvOK(fd) && SvIOK(fd)){
-			if(items >=4 ){
-				//len=SvIOK(ST(2))?SvIV(ST(2)):0;
-				offset=SvIOK(ST(3))?SvIV(ST(3)):0;
-			}
-				
-			int data_len=sv_len(data);
-			int request_len;
-			if(offset<0){
-				offset=data_len-offset;
-			}
-			else{
+        if(SvREADONLY(data)){
+            Perl_croak(aTHX_ "%s", PL_no_modify);
+        }
+        if(items >=4 ){
+          //len=SvIOK(ST(2))?SvIV(ST(2)):0;
+          offset=SvIOK(ST(3))?SvIV(ST(3)):0;
+        }
 
-			}
-			request_len=len+offset;
+        int data_len=sv_len(data);
+        int request_len;
+        if(offset<0){
+          offset=data_len-offset;
+        }
+        else{
 
-			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			#fprintf(stderr, "Length of request is: %d\n", request_len);
+        }
+        request_len=len+offset;
 
-			buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
+        //fprintf(stderr, "Length of buffer is: %d\n", data_len);
+        //fprintf(stderr, "Length of request is: %d\n", request_len);
 
-			data_len=sv_len(data);
-			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			#TODO: fill with nulls if offset past end of original data
-					
-			buf+=offset;
+        buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
 
-      ret=read(SvIV(fd), buf, len);
-			if(ret<0){
+        data_len=sv_len(data);
+        //fprintf(stderr, "Length of buffer is: %d\n", data_len);
+        //TODO: fill with nulls if offset past end of original data
 
-				//RETVAL=&PL_sv_undef;
-        XSRETURN_UNDEF;
-			}
-			else {
-				buf[ret]='\0';
-				SvCUR_set(data,ret+offset);
-				//RETVAL=newSViv(ret);
-        mXPUSHs(newSViv(ret));
-        XSRETURN(1);
-			}
+        buf+=offset;
+
+        ret=read(SvIV(fd), buf, len);
+        if(ret<0){
+
+          //RETVAL=&PL_sv_undef;
+          XSRETURN_UNDEF;
+        }
+        else {
+          buf[ret]='\0';
+          SvCUR_set(data,ret+offset);
+          //RETVAL=newSViv(ret);
+          mXPUSHs(newSViv(ret));
+          XSRETURN(1);
+        }
       }
       else{
+        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
+        errno=EBADF;
         XSRETURN_UNDEF;
       }
 
@@ -585,16 +590,19 @@ sysread3(fd, data, len)
 			int offset;
 
 		PPCODE:
-    if(SvOK(fd) && SvOK(data) &&SvIOK(fd)){
+    if(SvOK(fd) &&SvIOK(fd)){
+      if(SvREADONLY(data)){
+        Perl_croak(aTHX_ "%s", PL_no_modify);
+      }
 			int data_len=SvCUR(data);
 
-			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			#fprintf(stderr, "Length of request is: %d\n",len);
+			//fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			//fprintf(stderr, "Length of request is: %d\n",len);
 
 			buf = SvPOK(data) ? SvGROW(data,len+1) : 0;
 
 			//data_len=SvPVX(data);
-			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
+			//fprintf(stderr, "Length of buffer is: %d\n", data_len);
 
 
 			ret=read(SvIV(fd), buf, len);
@@ -613,6 +621,8 @@ sysread3(fd, data, len)
       }
 
       else {
+        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
+        errno=EBADF;
         XSRETURN_UNDEF;
       }
 
@@ -629,46 +639,46 @@ sysread4(fd, data, len, offset)
 			char *buf;
 
       PPCODE:
-      if(SvOK(fd) && SvOK(data) &&SvIOK(fd)){
-			#TODO: allow unspecified len and offset
+      if(SvOK(fd) &&SvIOK(fd)){
+        if(SvREADONLY(data)){
+          Perl_croak(aTHX_ "%s", PL_no_modify);
+        }
 
-			#grow scalar to fit potental read
-			int data_len=sv_len(data);
-			int request_len;
-			if(offset<0){
-				offset=data_len-offset;
-			}
-			else{
+#grow scalar to fit potental read
+        int data_len=sv_len(data);
+        int request_len;
+        if(offset<0){
+          offset=data_len-offset;
+        }
+        else{
 
-			}
-			request_len=len+offset;
+        }
+        request_len=len+offset;
 
-			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			#fprintf(stderr, "Length of request is: %d\n", request_len);
 
-			buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
+        buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
 
-			data_len=sv_len(data);
-			#fprintf(stderr, "Length of buffer is: %d\n", data_len);
-			#TODO: fill with nulls if offset past end of original data
-					
-			buf+=offset;
+        data_len=sv_len(data);
 
-                        ret=read(SvIV(fd), buf, len);
-			if(ret<0){
+        buf+=offset;
 
-				//RETVAL=&PL_sv_undef;
-        XSRETURN_UNDEF;
-			}
-			else {
-				buf[ret]='\0';
-				SvCUR_set(data,ret+offset);
-				//RETVAL=newSViv(ret);
-        mXPUSHs(newSViv(ret));
-        XSRETURN(1);
-			}
+        ret=read(SvIV(fd), buf, len);
+        if(ret<0){
+
+          //RETVAL=&PL_sv_undef;
+          XSRETURN_UNDEF;
+        }
+        else {
+          buf[ret]='\0';
+          SvCUR_set(data,ret+offset);
+          //RETVAL=newSViv(ret);
+          mXPUSHs(newSViv(ret));
+          XSRETURN(1);
+        }
       }
       else {
+        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
+        errno=EBADF;
         XSRETURN_UNDEF;
       }
 
@@ -676,17 +686,22 @@ sysread4(fd, data, len, offset)
 ##########
 
 SV*
-syswrite(fd,data,...)
+syswrite(fd,data, ...)
 	SV *fd
 	SV* data
 
 	INIT:
 		int ret;
 		char *buf;
-		STRLEN max=SvCUR(data);
+		STRLEN max;//=SvCUR(data);
 		int len;
 		int offset;
 	PPCODE:
+    if(!SvOK(data)){
+     Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with use of uninitialized value");
+     XSRETURN_IV(0);
+    }
+    max=SvCUR(data);
 		if(items >=4 ){
 			//length and  Offset provided
 			len=SvIOK(ST(2))?SvIV(ST(2)):0;
@@ -734,6 +749,8 @@ syswrite(fd,data,...)
       }
     }
     else{
+        Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
+        errno=EBADF;
         XSRETURN_UNDEF;  
     }
 
@@ -750,26 +767,32 @@ syswrite2(fd,data)
 	PPCODE:
 
     if(SvOK(fd) && SvIOK(fd)){
-		len=SvPOK(data)?SvCUR(data):0;
-		#TODO: fix negative offset processing
-		#TODO: allow unspecified len and offset
+      if(!SvOK(data)){
+        Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with use of uninitialized value");
+        XSRETURN_IV(0);
+      }
+      len=SvPOK(data)?SvCUR(data):0;
+      //TODO: fix negative offset processing
+      //TODO: allow unspecified len and offset
 
-		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+      //fprintf(stderr,"Input size: %zu\n",SvCUR(data));
 
-		
-		buf=SvPVX(data);
-		ret=write(SvIV(fd), buf, len);
-		if(ret<0){
-      XSRETURN_UNDEF;
-			//RETVAL=&PL_sv_undef;	
-		}
-		else{
-			//RETVAL=newSViv(ret);
-      mXPUSHs(newSViv(ret));
-      XSRETURN(1);
-		}
+
+      buf=SvPVX(data);
+      ret=write(SvIV(fd), buf, len);
+      if(ret<0){
+        XSRETURN_UNDEF;
+        //RETVAL=&PL_sv_undef;	
+      }
+      else{
+        //RETVAL=newSViv(ret);
+        mXPUSHs(newSViv(ret));
+        XSRETURN(1);
+      }
     }
     else{
+      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
+      errno=EBADF;
 
       XSRETURN_UNDEF;
     }
@@ -783,34 +806,41 @@ syswrite3(fd,data,len)
 	INIT:
 		int ret;
 		char *buf;
-		STRLEN max=SvCUR(data);
+		STRLEN max;//=SvCUR(data);
 		int offset=0;
 	PPCODE:
 
     if(SvOK(fd) && SvIOK(fd)){
-		#TODO: fix negative offset processing
-		#TODO: allow unspecified len and offset
+      if(!SvOK(data)){
+        Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with use of uninitialized value");
+        XSRETURN_IV(0);
+      }
+      //TODO: fix negative offset processing
+      //TODO: allow unspecified len and offset
 
-		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+      //fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+      max=SvCUR(data);
+      if(len>max){
+        len=max;
+      }
 
-		if(len>max){
-			len=max;
-		}
-		
-		buf=SvPVX(data);
-		ret=write(SvIV(fd),buf,len);
-		#fprintf(stderr, "write consumed %d bytes\n", ret);	
-		if(ret<0){
-			//RETVAL=&PL_sv_undef;	
-      XSRETURN_UNDEF;
-		}
-		else{
-			//RETVAL=newSViv(ret);
-      mXPUSHs(newSViv(ret));
-      XSRETURN(1);
-		}
+      buf=SvPVX(data);
+      ret=write(SvIV(fd),buf,len);
+      //fprintf(stderr, "write consumed %d bytes\n", ret);	
+      if(ret<0){
+        //RETVAL=&PL_sv_undef;	
+        XSRETURN_UNDEF;
+      }
+      else{
+        //RETVAL=newSViv(ret);
+        mXPUSHs(newSViv(ret));
+        XSRETURN(1);
+      }
     }
     else {
+      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
+      errno=EBADF;
+
       XSRETURN_UNDEF;
     }
 
@@ -825,37 +855,44 @@ syswrite4(fd,data,len,offset)
 	INIT:
 		int ret;
 		char *buf;
-		STRLEN max=SvCUR(data);
+		STRLEN max;//=SvCUR(data);
 	PPCODE:
 
-		#TODO: fix negative offset processing
-		#TODO: allow unspecified len and offset
+		//TODO: fix negative offset processing
+		//TODO: allow unspecified len and offset
 
     if(SvOK(fd) && SvIOK(fd)){
-		#fprintf(stderr,"Input size: %zu\n",SvCUR(data));
-		offset=
-			offset>max
-				?max
-				:offset;
+      if(!SvOK(data)){
+        Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with use of uninitialized value");
+        XSRETURN_IV(0);
+      }
+      //fprintf(stderr,"Input size: %zu\n",SvCUR(data));
+      max=SvCUR(data);
+      offset=
+        offset>max
+        ?max
+        :offset;
 
-		if((offset+len)>max){
-			len=max-offset;
-		}
-		
-		buf=SvPVX(data);
-		buf+=offset;
-		ret=write(SvIV(fd),buf,len);
-		#fprintf(stderr, "write consumed %d bytes\n", ret);	
-		if(ret<0){
-			//RETVAL=&PL_sv_undef;	
-      XSRETURN_UNDEF;
-		}
-		else{
-			//RETVAL=newSViv(ret);
-      mXPUSHs(newSViv(ret));
-		}
+      if((offset+len)>max){
+        len=max-offset;
+      }
+
+      buf=SvPVX(data);
+      buf+=offset;
+      ret=write(SvIV(fd),buf,len);
+#fprintf(stderr, "write consumed %d bytes\n", ret);	
+      if(ret<0){
+        //RETVAL=&PL_sv_undef;	
+        XSRETURN_UNDEF;
+      }
+      else{
+        //RETVAL=newSViv(ret);
+        mXPUSHs(newSViv(ret));
+      }
     }
     else{
+      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
+      errno=EBADF;
       XSRETURN_UNDEF;
     }
 
@@ -899,6 +936,8 @@ sendfile(socket, source, len, offset)
 
       }
       else {
+        Perl_warn(aTHX_ "%s", "IO::FD::sendfile called with something other than a file descriptor");
+        errno=EBADF;
         XSRETURN_UNDEF;
       }
 
