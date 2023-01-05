@@ -120,10 +120,20 @@ habitat of a file descriptor.
 
 =head1 IMPORTANT VERSION DIFFERENCES
 
-From C<v0.2.0>  all functions creating a new fd behave more perlish and apply
-the CLOEXEC if larger than C<$^F>  to prevent fd leakage.  This may result in
-an extra system call you didn't need if your program never calls C<exec>. To
-disable this, increase the value of C<$^F>.
+=head2 v0.2.0
+All functions creating a new fd behave more perlish and apply the CLOEXEC if
+larger than C<$^F>  to prevent fd leakage.  This may result in an extra system
+call you didn't need if your program never calls C<exec>. To disable this,
+increase the value of C<$^F>.
+
+Exceptions are now thrown when output variables (fds) are read only. This
+matches perl behaviour.
+
+When the input fd variable doesn't look like an fd, warnings are generated,
+return value is C<undef> and the C<$!> variable is set to C<EBADF> (bad file
+descriptor>). This is analogous to perl behaviour when checking for valid
+GLOB/refs. Also 
+
 
 =head1 WHERE SHOULD I USE THIS MODULE?
 

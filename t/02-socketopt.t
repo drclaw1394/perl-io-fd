@@ -1,9 +1,10 @@
-use Test::More tests=>2;
+use Test::More; 
 
 use IO::FD;
 use Fcntl;
 
 use Socket ":all";
+use POSIX "errno_h";
 
 
 
@@ -43,4 +44,41 @@ $ret=IO::FD::getsockopt($listener_fd, SOL_SOCKET, SO_SNDBUF);
 #say STDERR "getsockopt status: $!" unless $ret;
 #say STDERR "send buffer new size". unpack "i", $ret;
 
+{
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::getsockopt called with something other than a file descriptor/, "Got warning";
+  };
 
+  my $ret=IO::FD::getsockopt "", undef, undef;
+
+
+  ok !defined($ret), "Undef for bad fd";
+
+  ok $! == EBADF,"bad fd";
+}
+{
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::setsockopt called with something other than a file descriptor/, "Got warning";
+  };
+
+  my $ret=IO::FD::setsockopt "", undef, undef, undef;
+
+
+  ok !defined($ret), "Undef for bad fd";
+
+  ok $! == EBADF,"bad fd";
+}
+{
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::fcntl called with something other than a file descriptor/, "Got warning";
+  };
+
+  my $ret=IO::FD::fcntl "", undef, undef;
+
+
+  ok !defined($ret), "Undef for bad fd";
+
+  ok $! == EBADF,"bad fd";
+}
+
+done_testing;

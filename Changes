@@ -1,5 +1,5 @@
 Revision history for Perl extension IO::FD.
-v0.2.0  2022-12-26
+v0.2.0  2023-01-06
     [features]
     - Added accept4 function. Native on linux, emulates on darwin and bsd
     - Added IO::FD::SOCK_NONBLOCK and IO::FD::SOCK_CLOEXEC constants for
@@ -7,6 +7,13 @@ v0.2.0  2022-12-26
     - Added sendfile
 
     [changes]
+    - All functions returning a new fd to an existing variable now check the
+      variable can be modified. If it cannot a exception is thrown. This is
+      more ie built in perl behaviour.
+
+    - All functions taking an fd now check it is an IV and and warns, returns
+      undef and $! is set to EBADF. This is more like built in perl behaviour.
+
     - All functions (minus accept4) returning an new fd set CLOEXEC flag if its
       larger than $^F behaving more like standard perl. accept4 uses an
       explicit flag to manually set and is not set automatically
@@ -21,6 +28,7 @@ v0.2.0  2022-12-26
     [tests]
     - Added better tests for accepting sockets
     - Added sendfile test
+    - Added test for bad file descriptors and readonly return variables
     
     [documentation]
     - Documented changes regarding $^F

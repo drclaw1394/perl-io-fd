@@ -165,5 +165,23 @@ use POSIX "errno_h";
   ok $!==EBADF, "bad fd";
 
 }
+{
+  eval {
+    my $ret=IO::FD::sysopen "", "sdf",0;
+  };
+  ok $@=~ "Modification of a read-only value attempted", "Die on readonly sysopen var";
+
+  eval {
+    my $ret=IO::FD::sysopen4 "", "sdf",0,0;
+  };
+  ok $@=~ "Modification of a read-only value attempted", "Die on readonly sysopen var";
+
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::close called with something other than a file descriptor/, "Got warning";
+  };
+        my $ret=IO::FD::close("asdf");
+  ok !defined($ret), "Undef for bad fd";
+  ok $!==EBADF, "bad fd";
+}
 
 done_testing;

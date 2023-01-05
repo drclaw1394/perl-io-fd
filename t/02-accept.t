@@ -15,6 +15,7 @@ use IO::FD;
 
 use Fcntl qw<FD_CLOEXEC O_NONBLOCK F_SETFL F_GETFD F_GETFL>;
 use POSIX qw<EAGAIN EINPROGRESS>;
+use Errno ":POSIX";
 
 use Socket ":all";
 
@@ -207,6 +208,65 @@ while($run){
     #Timeout
     $run=$tests_performed <3;
   }
+}
+
+{
+  #Die on readonly socket
+  eval {
+    my $ret=IO::FD::socket "",0,0,0;
+  };
+  ok $@=~ "Modification of a read-only value attempted", "Die on readonly socket var";
+}
+
+{
+  # non fd on listen
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::listen called with something other than a file descriptor/, "Got warning";
+  };
+  my $ret=IO::FD::listen "", 3;
+  ok !defined($ret), "Undef for bad fd";
+  ok $! == EBADF,"bad fd";
+}
+
+{
+  #Die on readonly accept
+  eval {
+    my $ret=IO::FD::accept "",0;
+  };
+  ok $@=~ "Modification of a read-only value attempted", "Die on readonly socket var";
+
+  # non fd for accept
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::accept called with something other than a file descriptor/, "Got warning";
+  };
+  my $ret=IO::FD::accept my $new, "asdf";
+  ok !defined($ret), "Undef for bad fd";
+  ok $! == EBADF,"bad fd";
+}
+{
+  #Die on readonly accept
+  eval {
+    my $ret=IO::FD::accept4 "",0,0;
+  };
+  ok $@=~ "Modification of a read-only value attempted", "Die on readonly socket var";
+
+  # non fd for accept
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::accept4 called with something other than a file descriptor/, "Got warning";
+  };
+  my $ret=IO::FD::accept4 my $new, "asdf",0;
+  ok !defined($ret), "Undef for bad fd";
+  ok $! == EBADF,"bad fd";
+}
+{
+
+  # non fd for connect
+  local $SIG{__WARN__}=sub {
+    ok $_[0] =~ /IO::FD::connect called with something other than a file descriptor/, "Got warning";
+  };
+  my $ret=IO::FD::connect my $new, ""; 
+  ok !defined($ret), "Undef for bad fd";
+  ok $! == EBADF,"bad fd";
 }
 
 done_testing;

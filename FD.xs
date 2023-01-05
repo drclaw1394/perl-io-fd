@@ -146,6 +146,9 @@ socket(sock,af,type,proto)
 			int fd;
 			int s;
 		CODE:
+      if(SvREADONLY(sock)){
+            Perl_croak(aTHX_ "%s", PL_no_modify);
+      }
 			s=socket(af, type, proto);
 
 			//Set error variable...
@@ -198,7 +201,9 @@ listen(listener,backlog)
 		}
   }
   else{
-    XSRETURN_UNDEF;
+        Perl_warn(aTHX_ "%s", "IO::FD::listen called with something other than a file descriptor");
+        errno=EBADF;
+        XSRETURN_UNDEF;
   }
 
 
@@ -221,6 +226,9 @@ accept(new_fd, listen_fd)
 
   CODE:
     if(SvOK(listen_fd)&& SvIOK(listen_fd)){
+      if(SvREADONLY(new_fd)){
+            Perl_croak(aTHX_ "%s", PL_no_modify);
+      }
       ret=accept(SvIV(listen_fd), buf, &len);
       if(ret<0){
         RETVAL=&PL_sv_undef;
@@ -243,7 +251,9 @@ accept(new_fd, listen_fd)
       }
     }
     else {
-      RETVAL=&PL_sv_undef;
+        errno=EBADF;
+        RETVAL=&PL_sv_undef;
+        Perl_warn(aTHX_ "%s", "IO::FD::accept called with something other than a file descriptor");
     }
 	
 	
@@ -267,6 +277,9 @@ accept4(new_fd, listen_fd, flags)
 
   CODE:
     if(SvOK(listen_fd) && SvIOK(listen_fd)){
+      if(SvREADONLY(new_fd)){
+            Perl_croak(aTHX_ "%s", PL_no_modify);
+      }
 #if defined(IO_FD_OS_LINUX)
       ret=accept4(SvIV(listen_fd), buf, &len, flags);
 #endif
@@ -303,7 +316,9 @@ accept4(new_fd, listen_fd, flags)
         }
     }
     else{
-      RETVAL=&PL_sv_undef;
+        errno=EBADF;
+        RETVAL=&PL_sv_undef;
+        Perl_warn(aTHX_ "%s", "IO::FD::accept4 called with something other than a file descriptor");
     }
 
   OUTPUT:
@@ -332,6 +347,8 @@ accept_multiple(new_fds, peers, listen_fd)
 
 
 	PPCODE:
+
+    if(SvOK(listen_fd) && SvIOK(listen_fd)){
 #if defined(IO_FD_OS_LINUX) 
 		while((ret=accept4(SvIV(listen_fd),accept_multiple_next_buf, &len,SOCK_NONBLOCK))>=0){
 			//fcntl(ret, F_SETFL, O_NONBLOCK);
@@ -358,6 +375,13 @@ accept_multiple(new_fds, peers, listen_fd)
 		//If new_fd is still null, we failed all to gether
 		mXPUSHs((new_fd==NULL) ?&PL_sv_undef :newSViv(count));
 		XSRETURN(1);
+    }
+    else{
+
+        errno=EBADF;
+        Perl_warn(aTHX_ "%s", "IO::FD::accept_multiple called with something other than a file descriptor");
+        XSRETURN_UNDEF;
+    }
 
 
 
@@ -371,19 +395,34 @@ connect(fd, address)
 
 	PREINIT:
 		int ret;
-		int len=SvOK(address)?SvCUR(address):0;
-		struct sockaddr *addr=(struct sockaddr *)SvPVX(address);
+		int len;//=SvOK(address)?SvCUR(address):0;
+		struct sockaddr *addr;//=(struct sockaddr *)SvPVX(address);
 
 	CODE:
+    if(SvOK(fd) &&SvIOK(fd)){
+      if(SvOK(address)){
+        len=SvOK(address)?SvCUR(address):0;
+        addr=(struct sockaddr *)SvPVX(address);
+      }
+      else {
+        addr=NULL;
+        len=0;
+      }
+      ret=connect(SvIVX(fd),addr,len);
+      //fprintf(stderr,"CONNECT: %d\n",ret);
+      if(ret<0){
+        RETVAL=&PL_sv_undef;	
+      }
+      else{
+        RETVAL=newSViv(ret+1);
+      }
+    }
+    else{
+        errno=EBADF;
+        Perl_warn(aTHX_ "%s", "IO::FD::connect called with something other than a file descriptor");
+        RETVAL=&PL_sv_undef;	
+    }
 
-		ret=connect(SvIVX(fd),addr,len);
-		//fprintf(stderr,"CONNECT: %d\n",ret);
-		if(ret<0){
-			RETVAL=&PL_sv_undef;	
-		}
-		else{
-			RETVAL=newSViv(ret+1);
-		}
 	OUTPUT:
 		RETVAL
 	
@@ -406,6 +445,8 @@ sockatmark(fd)
 
 		}
 		else{
+      errno=EBADF;
+      Perl_warn(aTHX_ "%s", "IO::FD::sockatmark called with something other than a file descriptor");
 			XSRETURN_UNDEF;
 		}
 		
@@ -420,9 +461,12 @@ sysopen(fd, path, mode, ... )
 
 		PREINIT:
 			int f;
-                	int permissions=0666;	//Default if not provided
+      int permissions=0666;	//Default if not provided
 
 		CODE:
+      if(SvREADONLY(fd)){
+        Perl_croak(aTHX_ "%s", PL_no_modify);
+      }
 			if(items==4){
 				permissions=SvIV(ST(3));
 			}
@@ -459,6 +503,9 @@ sysopen4(fd, path, mode, permissions)
 			int f;
 
 		CODE:
+      if(SvREADONLY(fd)){
+        Perl_croak(aTHX_ "%s", PL_no_modify);
+      }
 			f=open(path, mode, permissions);
 			if(fd<0){
 				RETVAL=&PL_sv_undef;
@@ -503,7 +550,9 @@ close(fd)
       }
     }
     else {
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::close called with something other than a file descriptor");
     }
 	OUTPUT:
 		RETVAL
@@ -572,8 +621,8 @@ sysread(fd, data, len, ...)
         }
       }
       else{
-        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
         errno=EBADF;
+        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
         XSRETURN_UNDEF;
       }
 
@@ -621,8 +670,8 @@ sysread3(fd, data, len)
       }
 
       else {
-        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
         errno=EBADF;
+        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
         XSRETURN_UNDEF;
       }
 
@@ -677,8 +726,8 @@ sysread4(fd, data, len, offset)
         }
       }
       else {
-        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
         errno=EBADF;
+        Perl_warn(aTHX_ "%s", "IO::FD::sysread called with something other than a file descriptor");
         XSRETURN_UNDEF;
       }
 
@@ -749,8 +798,8 @@ syswrite(fd,data, ...)
       }
     }
     else{
-        Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
         errno=EBADF;
+        Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
         XSRETURN_UNDEF;  
     }
 
@@ -791,9 +840,8 @@ syswrite2(fd,data)
       }
     }
     else{
-      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
       errno=EBADF;
-
+      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
       XSRETURN_UNDEF;
     }
 
@@ -838,9 +886,8 @@ syswrite3(fd,data,len)
       }
     }
     else {
-      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
       errno=EBADF;
-
+      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
       XSRETURN_UNDEF;
     }
 
@@ -880,7 +927,7 @@ syswrite4(fd,data,len,offset)
       buf=SvPVX(data);
       buf+=offset;
       ret=write(SvIV(fd),buf,len);
-#fprintf(stderr, "write consumed %d bytes\n", ret);	
+      //fprintf(stderr, "write consumed %d bytes\n", ret);	
       if(ret<0){
         //RETVAL=&PL_sv_undef;	
         XSRETURN_UNDEF;
@@ -891,8 +938,8 @@ syswrite4(fd,data,len,offset)
       }
     }
     else{
-      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
       errno=EBADF;
+      Perl_warn(aTHX_ "%s", "IO::FD::syswrite called with something other than a file descriptor");
       XSRETURN_UNDEF;
     }
 
@@ -936,8 +983,8 @@ sendfile(socket, source, len, offset)
 
       }
       else {
-        Perl_warn(aTHX_ "%s", "IO::FD::sendfile called with something other than a file descriptor");
         errno=EBADF;
+        Perl_warn(aTHX_ "%s", "IO::FD::sendfile called with something other than a file descriptor");
         XSRETURN_UNDEF;
       }
 
@@ -959,6 +1006,9 @@ pipe(read_end,write_end)
 		int fds[2];
 
 	CODE:
+    if(SvREADONLY(read_end) || SvREADONLY(write_end)){
+      Perl_croak(aTHX_ "%s", PL_no_modify);
+    }
 		ret=pipe(fds);
 
 		if(ret<0){
@@ -1004,11 +1054,19 @@ bind(fd, address)
 
 	INIT:
 		int ret;
-		int len=SvOK(address)?SvCUR(address):0;
-		struct sockaddr *addr=(struct sockaddr *)SvPVX(address);
+		int len;//=SvOK(address)?SvCUR(address):0;
+		struct sockaddr *addr;//=(struct sockaddr *)SvPVX(address);
 
 	CODE:
-    if(SvOK(fd)  && SvIOK(fd)){
+    if(SvOK(fd) && SvIOK(fd)){
+      if(SvOK(address) &&SvPOK(address)){  
+		    len=SvOK(address)?SvCUR(address):0;
+		    addr=(struct sockaddr *)SvPVX(address);
+      }
+      else {
+        addr=NULL;
+        len=0;
+      }
       ret=bind(SvIV(fd), addr, len);
       if(ret<0){
         RETVAL=&PL_sv_undef;
@@ -1018,6 +1076,8 @@ bind(fd, address)
       }
     }
     else {
+      errno=EBADF;
+      Perl_warn(aTHX_ "%s", "IO::FD::bind called with something other than a file descriptor");
       RETVAL=&PL_sv_undef;
     }
 	
@@ -1044,6 +1104,9 @@ socketpair(fd1,fd2, domain, type, protocol)
 
 	CODE:
 		//TODO need to emulate via tcp to localhost for non unix
+    if(SvREADONLY(fd1) || SvREADONLY(fd2)){
+      Perl_croak(aTHX_ "%s", PL_no_modify);
+    }
 		ret=socketpair(domain, type, protocol, fds);
 		if(ret<0){
 			RETVAL=&PL_sv_undef;
@@ -1093,7 +1156,9 @@ sysseek(fd,offset,whence)
       }
     }
     else{
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::bind called with something other than a file descriptor");
     }
 
 	OUTPUT:
@@ -1120,7 +1185,9 @@ dup(fd)
       }
     }
     else {
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::dup called with something other than a file descriptor");
     }
 
 	OUTPUT:
@@ -1139,7 +1206,7 @@ dup2(fd1,fd2)
 		int ret;
 
 	CODE:
-    if(SvOK(fd1) && SvOK(fd2)){
+    if(SvOK(fd1) && SvIOK(fd1) && SvOK(fd2) && SvIOK(fd2)){
       ret=dup2(SvIV(fd1),SvIV(fd2));
       if(ret<0){
         RETVAL=&PL_sv_undef;
@@ -1152,7 +1219,9 @@ dup2(fd1,fd2)
       }
     }
     else {
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::dup2 called with something other than a file descriptor");
     }
 
 	OUTPUT:
@@ -1198,7 +1267,9 @@ fcntl(fd, cmd, arg)
       }
     }
     else {
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::fcntl called with something other than a file descriptor");
     }
 
 	OUTPUT:
@@ -1256,7 +1327,9 @@ getsockopt(fd, level, option)
       }
     }
     else{
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::getsockopt called with something other than a file descriptor");
     }
     
 
@@ -1324,7 +1397,9 @@ setsockopt(fd, level, option, buffer)
 
     }
     else{
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::setsockopt called with something other than a file descriptor");
     }
 
 		
@@ -1593,6 +1668,9 @@ recv(fd, data, len, flags)
 
 	CODE:
     if(SvOK(fd) && SvIOK(fd)){
+        if(SvREADONLY(data)){
+            Perl_croak(aTHX_ "%s", PL_no_modify);
+        }
       //Makesure the buffer exists and is large enough to recv
       if(!SvOK(data)){
         data=newSV(len);
@@ -1617,7 +1695,9 @@ recv(fd, data, len, flags)
       }
     }
     else {
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::recv called with something other than a file descriptor");
     }
 	OUTPUT:
 		RETVAL
@@ -1665,7 +1745,9 @@ send(fd,data,flags, ...)
       }
     }
     else{
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::send called with something other than a file descriptor");
     }
 
 	OUTPUT:
@@ -1697,7 +1779,9 @@ getpeername(fd)
       }
     }
     else {
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::getpeername called with something other than a file descriptor");
     }
 	
 	OUTPUT:
@@ -1728,7 +1812,9 @@ getsockname(fd)
       }
     }
     else{
+      errno=EBADF;
       RETVAL=&PL_sv_undef;
+      Perl_warn(aTHX_ "%s", "IO::FD::getsockname called with something other than a file descriptor");
     }
 	
 	OUTPUT:
@@ -1755,6 +1841,8 @@ shutdown(fd, how)
     }
   }
   else{
+      errno=EBADF;
+      Perl_warn(aTHX_ "%s", "IO::FD::shutdown called with something other than a file descriptor");
       XSRETURN_UNDEF;
   }
 
