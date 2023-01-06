@@ -30,6 +30,7 @@ t/01-pipe.t
 t/01-readline.t
 t/02-accept.t
 t/02-bind-connect.t
+t/02-bind.t
 t/02-send-recv.t
 t/02-sendfile.t
 t/02-sock-peer-name.t
