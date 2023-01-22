@@ -44,37 +44,11 @@ mkstemp(template)
 					XSRETURN(1);
 					break;
 				case G_ARRAY:
-
-      //extract the file path here
-#if defined(IO_FD_OS_DARWIN) || defined (IO_FD_OS_BSD)
-         
-        
-					path_sv=newSV(MAXPATHLEN);	
+          
+          // Read the manual stupid... This was so simple
+          // yet so hard !  LOL
+					path_sv=newSVpv(template,0);
 					path=SvPVX(path_sv);
-					fcntl(ret, F_GETPATH, path);
-					SvCUR_set(path_sv, strlen(path));
-          SvPOK_on(path_sv);
-#endif
-#if defined(IO_FD_OS_LINUX)
-
-          //build  path into proc filesystem
-          //an use readlink on /proc/self/fd/NNN where NNN is the file
-          ssize_t bufsize=MAXPATHLEN;
-          ssize_t outsize;
-          char * buf;
-
-          path_sv=newSV(MAXPATHLEN);
-          buf=SvPVX(path_sv);
-
-          outsize=readlink(path, buf, bufsize);
-          if(outsize<-1){
-			      Perl_croak(aTHX_ "Cannot access fd info in /proc");
-          }
-
-          buf[outsize]='\0'; //Needs a manual null
-          SvCUR_set(path_sv, outsize);
-          SvPOK_on(path_sv);
-#endif
 
 					EXTEND(SP,2);
 					mPUSHs(newSViv(ret));
