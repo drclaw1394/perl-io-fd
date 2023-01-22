@@ -14,6 +14,9 @@ mkstemp(template)
 		char *path;
 		int len=0;
 		int min_ok=1;
+    ssize_t bufsize,outsize;
+    char proc[MAXPATHLEN];
+
 	PPCODE:
 		len=strlen(template);
 		if(len<6){
@@ -56,22 +59,22 @@ mkstemp(template)
           SvPOK_on(path_sv);
 #endif
 #if defined(IO_FD_OS_LINUX)
-
-          //build  path into proc filesystem
-          //an use readlink on /proc/self/fd/NNN where NNN is the file
-          ssize_t bufsize=MAXPATHLEN;
-          ssize_t outsize;
-          char * buf;
+          //ssize_t bufsize=MAXPATHLEN;
+          bufsize=MAXPATHLEN;
+          //ssize_t outsize;
+          //char * buf;
 
           path_sv=newSV(MAXPATHLEN);
-          buf=SvPVX(path_sv);
-
-          outsize=readlink(path, buf, bufsize);
-          if(outsize<-1){
+          path=SvPVX(path_sv);
+          sprintf(proc,"/proc/self/fd/%d",ret);
+          //readlink on /proc/self/fd/NNN where NNN is the file
+          //
+          outsize=readlink(proc, path, bufsize);
+          if(outsize<0){
 			      Perl_croak(aTHX_ "Cannot access fd info in /proc");
           }
 
-          buf[outsize]='\0'; //Needs a manual null
+          path[outsize]='\0'; //Needs a manual null
           SvCUR_set(path_sv, outsize);
           SvPOK_on(path_sv);
 #endif
