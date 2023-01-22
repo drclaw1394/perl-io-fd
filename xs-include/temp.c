@@ -71,7 +71,7 @@ mkstemp(template)
 			      Perl_croak(aTHX_ "Cannot access fd info in /proc");
           }
 
-          buf[outsize]="\0"; //Needs a manual null
+          buf[outsize]='\0'; //Needs a manual null
           SvCUR_set(path_sv, outsize);
           SvPOK_on(path_sv);
 #endif

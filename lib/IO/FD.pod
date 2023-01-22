@@ -321,7 +321,7 @@ Behaves similar to L<File::Temp::mktemp>
 
 Requires at least six 'X' characters at the end of the template
 
-NOTE: This function does not return a file descriptor. It might be included in
+B<NOTE:> This function does not return a file descriptor. It might be included in
 future versions of this module
 
 =head3 IO::FD::mkstemp
@@ -330,11 +330,11 @@ Behaves like L<File::Temp::mkstemp>
 
 Requires at least six 'X' characters at the end of the template
 
-B<NOTE:> Currently returns C<undef> as path in list context. Cross platform fd
-paths are hard to extract.  TODO:  Fix this across platforms.
+In list context returns C<($fd,$path)>, where C<$fd> is the already open file
+descriptor, and C<$path> is the unique path generated from the template.
+
 
 =head3 IO::FD::sysseek
-
 
 =head2 Pipes
 
@@ -343,6 +343,16 @@ paths are hard to extract.  TODO:  Fix this across platforms.
 =head3 IO::FD::syspipe
 
 A alias of C<IO::FD::pipe>.
+
+=head3 mkfifo
+
+Binding to C<mkfifo>. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
+
+=head3 mkfifoat
+
+Binding to C<mkfifoat>. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
 
 =head2 Common
 

@@ -320,7 +320,7 @@ Behaves similar to [File::Temp::mktemp](https://metacpan.org/pod/File%3A%3ATemp%
 
 Requires at least six 'X' characters at the end of the template
 
-NOTE: This function does not return a file descriptor. It might be included in
+**NOTE:** This function does not return a file descriptor. It might be included in
 future versions of this module
 
 ### IO::FD::mkstemp
@@ -329,8 +329,8 @@ Behaves like [File::Temp::mkstemp](https://metacpan.org/pod/File%3A%3ATemp%3A%3A
 
 Requires at least six 'X' characters at the end of the template
 
-**NOTE:** Currently returns `undef` as path in list context. Cross platform fd
-paths are hard to extract.  TODO:  Fix this across platforms.
+In list context returns `($fd,$path)`, where `$fd` is the already open file
+descriptor, and `$path` is the unique path generated from the template.
 
 ### IO::FD::sysseek
 
@@ -341,6 +341,16 @@ paths are hard to extract.  TODO:  Fix this across platforms.
 ### IO::FD::syspipe
 
 A alias of `IO::FD::pipe`.
+
+### mkfifo
+
+Binding to `mkfifo`. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
+
+### mkfifoat
+
+Binding to `mkfifoat`. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
 
 ## Common
 
