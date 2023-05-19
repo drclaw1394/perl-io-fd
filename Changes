@@ -1,14 +1,13 @@
 Revision history for Perl extension IO::FD.
 
-v0.2.1  2023-01-19
+v0.3.0  2023-05-19
     [features]
     - Added pread and pwrite
     - Added mkfifo and mkfifoat
-    - TODO: mkfifoat is new on macos.. disable somehow?
 
     [changes]
     - Fcntl call to set O_CLOSEXEC on sysopen*/mkfifo* is only applied if the
-      mode parameter didn't specify it, or if the fd is greater than $^F. Saves
+      mode parameter didn't specify it, OR if the fd is greater than $^F. Saves
       an useless syscall to set the value twice
 
     [tests]

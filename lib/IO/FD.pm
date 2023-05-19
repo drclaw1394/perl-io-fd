@@ -36,6 +36,9 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 	syswrite3
 	syswrite4
 
+  pread
+  pwrite
+
   mkfifo
   mkfifoat
 
@@ -67,7 +70,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = 'v0.2.1';
+our $VERSION = 'v0.3.0';
 
 use constant();
 use Socket qw<SOCK_NONBLOCK SOCK_CLOEXEC>;

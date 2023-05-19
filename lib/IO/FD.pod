@@ -416,6 +416,16 @@ Likely differences to Perl lstat for larger integer values
 
 TODO: fix this!
 
+=head3 IO::FD::pread
+
+Binding to C<pread>. Please see your system manual.
+
+=head3 IO::FD:pwrite
+
+Binding to C<pwrite>. Please see your system manual.
+
+
+
 
 =head2 Experimental
 

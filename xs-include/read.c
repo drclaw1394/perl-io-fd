@@ -39,7 +39,7 @@ sysread(fd, data, len, ...)
 
         buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
 
-        data_len=sv_len(data);
+        //data_len=sv_len(data);
         //fprintf(stderr, "Length of buffer is: %d\n", data_len);
         //TODO: fill with nulls if offset past end of original data
 
@@ -189,7 +189,7 @@ sysread4(fd, data, len, offset)
 
         buf = SvPOK(data) ? SvGROW(data, request_len+1) : 0;
 
-        data_len=sv_len(data);
+        //data_len=sv_len(data);
 
         buf+=offset;
 

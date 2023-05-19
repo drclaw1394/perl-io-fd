@@ -51,8 +51,17 @@ syswrite(fd,data, ...)
       
       buf=SvPVX(data);
       buf+=offset;
+
+      //struct timeval start;
+      //struct timeval end;
+
+      //gettimeofday(&start, NULL);
       ret=write(SvIV(fd), buf, len);
-      #fprintf(stderr, "write consumed %d bytes\n", ret);	
+      //gettimeofday(&end, NULL);
+      //time_t diff_sec=end.tv_sec-start.tv_sec;
+      //time_t diff_usec=end.tv_usec-start.tv_usec;
+      //fprintf(stderr,"Write seconds: %ld, useconds %ld\n", diff_sec, diff_usec); 
+      //fprintf(stderr, "write consumed %d bytes\n", ret);	
       if(ret<0){
         XSRETURN_UNDEF;
         //RETVAL=&PL_sv_undef;	
