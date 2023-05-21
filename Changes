@@ -4,8 +4,7 @@ v0.3.0  2023-05-19
     [features]
     - Added pread and pwrite
     - Added mkfifo and mkfifoat
-    - TODO: mkfifoat is new on macos.. disable somehow?
-    - TODO: sendfile is not available on netbsd... how to test?
+    - Added mkfifoat 
 
     [changes]
     - Fcntl call to set O_CLOSEXEC on sysopen*/mkfifo* is only applied if the
@@ -13,11 +12,14 @@ v0.3.0  2023-05-19
       an useless syscall to set the value twice
 
     [tests]
-    - mkfifo
-    - mktemp and mkstemp
+    - pread and pwrite tests added
+    - mkfifo, mktemp and mkstemp tests added
+    - TODO: test mkfifoat
     
     [other]
-    - Code split across multiple files
+    - Code split across multiple files.
+    - Conditional building to better handle missing functions on NetBSD
+      (sendfile) and early versions of macOS (mkfifoat)
 
 
 v0.2.0  2023-01-06

@@ -30,6 +30,11 @@ for($Config{osname}){
 	}
 	elsif(/bsd/){
 		$defines{IO_FD_OS_BSD}=1;
+    push @includes, (
+      '#include <sys/event.h>',
+      '#include <sys/uio.h>',
+      '#include <sys/types.h>',
+    );
 	}
 	elsif(/linux/){
 		$defines{IO_FD_OS_LINUX}=1;
