@@ -23,33 +23,6 @@ mkfifo(path, ...)
         XSRETURN_IV(f+1);
 			}
 
-SV*
-mkfifoat(fd, path, mode)
-    SV *fd
-    char *path
-    int mode
-
-		PREINIT:
-			int f;
-
-		PPCODE:
-      if(SvOK(fd) &&SvIOK(fd)){
-        f=mkfifoat(SvIV(fd), path, mode);
-        if(f<0){
-          XSRETURN_UNDEF;
-        }
-        else{
-          if(!(mode & O_CLOEXEC) && (f>PL_maxsysfd)){
-            fcntl(f, F_SETFD, FD_CLOEXEC);
-          }
-          XSRETURN_IV(f);
-        }
-      }
-      else{
-        errno=EBADF;
-        Perl_warn(aTHX_ "%s", "IO::FD::mkfifoat called with something other than a file descriptor");
-        XSRETURN_UNDEF;
-      }
 
 #PIPE
 ######

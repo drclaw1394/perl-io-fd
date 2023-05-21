@@ -4,6 +4,8 @@ v0.3.0  2023-05-19
     [features]
     - Added pread and pwrite
     - Added mkfifo and mkfifoat
+    - TODO: mkfifoat is new on macos.. disable somehow?
+    - TODO: sendfile is not available on netbsd... how to test?
 
     [changes]
     - Fcntl call to set O_CLOSEXEC on sysopen*/mkfifo* is only applied if the

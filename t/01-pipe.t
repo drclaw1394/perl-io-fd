@@ -79,6 +79,14 @@ use Errno qw<EAGAIN>;
   unlink $path;
 }
 
+# mkfifoat 
+use Config;
+my @vers=split /\./, $Config{osvers};
+unless($Config{osname}=~/darwin/ and $vers[0]<21){
+  # TODO: Add Test for mkfifoat
+
+}
+
 
 
 done_testing;
