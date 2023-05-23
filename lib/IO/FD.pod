@@ -123,6 +123,13 @@ habitat of a file descriptor.
 
 =head1 IMPORTANT VERSION DIFFERENCES
 
+=head2 v0.3.0 and later
+
+B<New functions:>
+
+C<pread>, C<pwrite>, C<mkfifo>, C<mkfifoat>, C<open>, C<openat>
+
+
 =head2 v0.2.0 and later
 
 B<New functions:>
@@ -136,15 +143,14 @@ if larger than C<$^F>  to prevent fd leakage.  This may result in an extra
 system call you didn't need if your program never calls C<exec>. To disable
 this, increase the value of C<$^F>. 
 
-
 Functions now throw B<exceptions> when output variables (fds) are read only
-when they need to be writable. This matches perl behaviour in the same scenario
+when they need to be writable. This matches Perl behaviour in the same scenario
 for C<sysopen> etc.
 
 When function input fd variables doesn't look like an fd (an IV), a B<warning>
 'IO::FD::xxxx called with something other than a file descriptor' is generated,
 return value is C<undef> and the C<$!> variable is set to C<EBADF> (bad file
-descriptor>). This is analogous to perl behaviour when checking for valid
+descriptor>). This is analogous to Perl behaviour when checking for valid
 GLOB/refs with C<sysread> and friends.
 
 
@@ -255,7 +261,6 @@ B<NOTE:>Unlike other functions returning new file descriptors, this B<DOES NOT>
 automatically apply the CLOEXEC flag. The C<$flags> argument must be set
 accordingly to achieve this.
 
-
 B<NOTE:> On emulated systems, any errors reported are only from the accept
 call, not subsequent C<fcntl> calls
 
@@ -315,11 +320,24 @@ Currently advanced header/trailer features of BSD sendfile are not supported.
 
 Same as C<IO::FD::sysopen>, but expects all four arguments
 
+=head3 IO::FD::open
+
+Binding to C<open>. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
+
+=head3 IO::FD::openat
+
+Binding to C<openat>. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
+
 =head3 IO::FD::mktemp
 
 Behaves similar to L<File::Temp::mktemp>
 
 Requires at least six 'X' characters at the end of the template
+
+The template string used as input is modified  and is the same as the return
+value on success
 
 B<NOTE:> This function does not return a file descriptor. It might be included in
 future versions of this module
@@ -332,6 +350,9 @@ Requires at least six 'X' characters at the end of the template
 
 In list context returns C<($fd,$path)>, where C<$fd> is the already open file
 descriptor, and C<$path> is the unique path generated from the template.
+
+The template string used as input is modified  and is the same as the C<$path>
+return value on success
 
 
 =head3 IO::FD::sysseek
@@ -445,7 +466,7 @@ Alias to ioctl
 
 =head3 IO::FD::select
 
-Broken. Probably will be removed as core perl has this already.
+Broken. Probably will be removed as core Perl has this already.
 
 =head3 IO::FD::poll
 
@@ -648,7 +669,7 @@ provide any networking/socket support.
 
   Further emulate linux/bsd SOCK_NONBLOCK and SOCK_CLOEXEC on darwin
 	Add more tests for stat and DWIM module
-	Wider compatability for older perls
+	Wider compatability for older Perls
 	Add More system functions which work with fds
 	Work with win32 sockets
 	Maybe make an IO::Handle sub class

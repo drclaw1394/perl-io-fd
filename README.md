@@ -133,6 +133,12 @@ habitat of a file descriptor.
 
 # IMPORTANT VERSION DIFFERENCES
 
+## v0.3.0 and later
+
+**New functions:**
+
+`pread`, `pwrite`, `mkfifo`, `mkfifoat`, `open`, `openat`
+
 ## v0.2.0 and later
 
 **New functions:**
@@ -147,13 +153,13 @@ system call you didn't need if your program never calls `exec`. To disable
 this, increase the value of `$^F`. 
 
 Functions now throw **exceptions** when output variables (fds) are read only
-when they need to be writable. This matches perl behaviour in the same scenario
+when they need to be writable. This matches Perl behaviour in the same scenario
 for `sysopen` etc.
 
 When function input fd variables doesn't look like an fd (an IV), a **warning**
 'IO::FD::xxxx called with something other than a file descriptor' is generated,
 return value is `undef` and the `$!` variable is set to `EBADF` (bad file
-descriptor>). This is analogous to perl behaviour when checking for valid
+descriptor>). This is analogous to Perl behaviour when checking for valid
 GLOB/refs with `sysread` and friends.
 
 # WHERE SHOULD I USE THIS MODULE?
@@ -314,11 +320,24 @@ Currently advanced header/trailer features of BSD sendfile are not supported.
 
 Same as `IO::FD::sysopen`, but expects all four arguments
 
+### IO::FD::open
+
+Binding to `open`. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
+
+### IO::FD::openat
+
+Binding to `openat`. Please see your system manual. If no mode is specified,
+the 'perlish' 0666, is used.
+
 ### IO::FD::mktemp
 
 Behaves similar to [File::Temp::mktemp](https://metacpan.org/pod/File%3A%3ATemp%3A%3Amktemp)
 
 Requires at least six 'X' characters at the end of the template
+
+The template string used as input is modified  and is the same as the return
+value on success
 
 **NOTE:** This function does not return a file descriptor. It might be included in
 future versions of this module
@@ -331,6 +350,9 @@ Requires at least six 'X' characters at the end of the template
 
 In list context returns `($fd,$path)`, where `$fd` is the already open file
 descriptor, and `$path` is the unique path generated from the template.
+
+The template string used as input is modified  and is the same as the `$path`
+return value on success
 
 ### IO::FD::sysseek
 
@@ -414,6 +436,14 @@ Likely differences to Perl lstat for larger integer values
 
 TODO: fix this!
 
+### IO::FD::pread
+
+Binding to `pread`. Please see your system manual.
+
+### IO::FD:pwrite
+
+Binding to `pwrite`. Please see your system manual.
+
 ## Experimental
 
 These functions haven't really been tested, documented or finished. They exist
@@ -432,7 +462,7 @@ Alias to ioctl
 
 ### IO::FD::select
 
-Broken. Probably will be removed as core perl has this already.
+Broken. Probably will be removed as core Perl has this already.
 
 ### IO::FD::poll
 
@@ -648,7 +678,7 @@ provide any networking/socket support.
 ```perl
 Further emulate linux/bsd SOCK_NONBLOCK and SOCK_CLOEXEC on darwin
       Add more tests for stat and DWIM module
-      Wider compatability for older perls
+      Wider compatability for older Perls
       Add More system functions which work with fds
       Work with win32 sockets
       Maybe make an IO::Handle sub class

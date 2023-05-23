@@ -12,36 +12,6 @@
 //
 #include "platform.h"
 
-/************************************************************************/
-/* #include <fcntl.h>                                                   */
-/* #include <sys/socket.h>                                              */
-/* #include <sys/un.h>                                                  */
-/* #include <stdio.h>                                                   */
-/* #include <unistd.h>                                                  */
-/* #include <poll.h>                                                    */
-/*                                                                      */
-/* #include <sys/time.h>                                                */
-/*                                                                      */
-/* #if defined(IO_FD_OS_DARWIN) || defined(IO_FD_OS_BSD)                */
-/* #include <sys/event.h>                                               */
-/* #include <sys/uio.h>                                                 */
-/* #include <sys/types.h>                                               */
-/*                                                                      */
-/*                                                                      */
-/* #endif                                                               */
-/*                                                                      */
-/* #if defined(IO_FD_OS_LINUX)                                          */
-/* #include <sys/sendfile.h>                                            */
-/* #endif                                                               */
-/*                                                                      */
-/* #include <sys/stat.h>                                                */
-/*                                                                      */
-/* #if defined(IO_FD_OS_DARWIN)                                         */
-/* //Make up constants for manipulating accept4, socketpair, and socket */
-/* #define SOCK_NONBLOCK 0x10000000                                     */
-/* #define SOCK_CLOEXEC  0x20000000                                     */
-/* #endif                                                               */
-/************************************************************************/
 
 //Read from an fd until eof or error condition
 //Returns SV containing all the data

@@ -75,3 +75,61 @@ sysopen4(fd, path, mode, permissions)
 		OUTPUT:
 			RETVAL
 			fd
+
+SV *
+openat(dir_fd, path, mode , ...)
+  SV* dir_fd;
+  char *path;
+  int mode;
+
+  PREINIT:
+    int f;
+    int permissions=0666;
+
+  PPCODE:
+			if(items==4){
+				permissions=SvIV(ST(3));
+			}
+      if(SvOK(dir_fd) && SvIOK(dir_fd)){
+        f=openat(SvIV(dir_fd), path, mode, permissions);
+
+        if(f<0){
+          XSRETURN_UNDEF;
+        }
+        else{
+          if(!(mode & O_CLOEXEC) && (f>PL_maxsysfd)){
+            fcntl(f, F_SETFD, FD_CLOEXEC);
+          }
+          XSRETURN_IV(f);
+        }
+      }
+      else {
+          Perl_warn(aTHX_ "%s", "IO::FD::openat called with something other than a file descriptor");
+          errno=EBADF;
+          XSRETURN_UNDEF;
+      }
+
+SV *
+open(path, mode , ...)
+  char *path;
+  int mode;
+
+  PREINIT:
+    int f;
+    int permissions=0666;
+
+  PPCODE:
+			if(items==3){
+				permissions=SvIV(ST(2));
+			}
+			f=open(path, mode, permissions);
+
+			if(f<0){
+        XSRETURN_UNDEF;
+			}
+			else{
+        if(!(mode & O_CLOEXEC) && (f>PL_maxsysfd)){
+          fcntl(f, F_SETFD, FD_CLOEXEC);
+        }
+				XSRETURN_IV(f);
+			}

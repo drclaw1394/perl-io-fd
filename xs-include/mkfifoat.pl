@@ -17,16 +17,19 @@ mkfifoat(...)
 else {
   $output=qq|
 SV*
-mkfifoat(fd, path, mode)
+mkfifoat(fd, path, ...)
     SV *fd
     char *path
-    int mode
 
 		PREINIT:
 			int f;
+      int mode=0666;	//Default if not provided
 
 		PPCODE:
       if(SvOK(fd) &&SvIOK(fd)){
+        if(items >=3){
+          mode=SvIV(ST(2));
+        }
         f=mkfifoat(SvIV(fd), path, mode);
         if(f<0){
           XSRETURN_UNDEF;
