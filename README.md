@@ -92,13 +92,17 @@ accept_multiple
 
 # DESCRIPTION
 
-IO::FD is an XS module implementing common core Perl system I/O functions work
-with **file descriptors** instead of Perl **file handles**. Functions include but
-are not limited to `accept`, `connect`, `socket`, `bind`, `sysopen`,
-`sysread`, and `syswrite`.
+IO::FD is an XS module implementing common core Perl system I/O functions to
+work with **file descriptors** instead of Perl **file handles**. Functions
+include but are not limited to `accept`, `connect`, `socket`, `bind`,
+`sysopen`, `sysread`, and `syswrite`.
 
-It also implements some non core functions which normally would use file handles
-such as `sendfile`, `dup` and `mkstemp`.
+Many non core system functions such as `sendfile`, `dup` and `mkstemp`,
+`pread`, `pwrite`, `mkfifo` which work with file descriptors are also
+implemented.
+
+Additional support for streamlined connection accepting is included via
+`accept_multiple`.
 
 This module can significantly lower memory usage per file descriptor and
 decrease file/socket opening and socket accepting times.  `accept` performance
@@ -128,7 +132,7 @@ This modules **IS NOT** intended to be a drop in replacement for core IO
 subroutines in existing code. If you want a 'drop in replacement' please look
 at [IO::FD::DWIM](https://metacpan.org/pod/IO%3A%3AFD%3A%3ADWIM) which is part of the same distribution.
 
-Currently this module is focused on Unix/Linux systems, as this is the natural
+Currently this module is focused on UNIX/Linux systems, as this is the natural
 habitat of a file descriptor.
 
 # IMPORTANT VERSION DIFFERENCES
@@ -147,10 +151,10 @@ habitat of a file descriptor.
 
 **Changes:**
 
-All functions creating a new fd now behave more perlish and apply the CLOEXEC
-if larger than `$^F`  to prevent fd leakage.  This may result in an extra
-system call you didn't need if your program never calls `exec`. To disable
-this, increase the value of `$^F`. 
+All functions creating a new fd now behave more perlish and apply  O\_CLOEXEC if
+larger than `$^F`  to prevent fd leakage.  This may result in an extra system
+call you didn't need if your program never calls `exec`. To disable this,
+increase the value of `$^F` as per normal.
 
 Functions now throw **exceptions** when output variables (fds) are read only
 when they need to be writable. This matches Perl behaviour in the same scenario
@@ -195,18 +199,14 @@ file descriptors directly **you will loose**:
 - <FH> 'readline' support
 - IO::Handle inheritance
 
-**NOTE:** Since version **v0.2.0**  the close on exec flag is set for file
-descriptors created above the value in `$^F`. Previouse versions did not do
-this.
-
 # MOTIVATION
 
 Perl makes working with text files easy, thanks to **file handles**.  Line
 splitting, UTF-8, EOL processing etc. are awesome and make your life easier.
 
-However, the benefits of file handles in a network context or binary files are
-not so clear cut. All the nice line ending and encoding support doesn't help in
-these scenarios.
+However, the benefits of file handles when working within a network or binary
+file context are not so clear cut. All the nice line ending and encoding
+support doesn't help in these scenarios.
 
 In addition, the OS kernel does a lot of buffering for networking already. Do we
 really need to add more?
@@ -217,7 +217,7 @@ faster with file descriptors as less setup is required internally.
 
 # APIs
 
-Each of the APIs mimic the Perl counterpart (if applicable) as much as
+Each of the APIs mimic the Perl counterpart, if applicable, as much as
 possible. Unless explicitly mentioned, they should operate like built in
 routines.  Consult perldoc -f FUNCTION for details.
 

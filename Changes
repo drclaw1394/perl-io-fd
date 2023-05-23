@@ -18,6 +18,10 @@ v0.3.0  2023-05-24
     - mkfifoat tests added
     - open and openat tests added
     
+    [documentation]
+    - added POD (minimal) for new features
+    - Fixed typos and grammar errors
+
     [other]
     - Code split across multiple files.
     - Conditional building to better handle missing functions on NetBSD
