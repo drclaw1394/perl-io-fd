@@ -70,7 +70,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = 'v0.3.0';
+our $VERSION = 'v0.3.1';
 
 use constant();
 use Socket qw<SOCK_NONBLOCK SOCK_CLOEXEC>;

@@ -11,7 +11,7 @@ use Socket ":all";
 # Netbsd does not support sendfile
 use Config;
 my @vers=split /\./, $Config{osvers};
-plan skip_all=>"No sendfile to test on NetBSD" if $Config{osname}=~/netbsd/i;
+plan skip_all=>"No sendfile to test on NetBSD or OpenBSD" if $Config{osname}=~/netbsd|openbsd/i;
 
 
 

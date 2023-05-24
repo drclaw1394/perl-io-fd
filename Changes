@@ -1,4 +1,7 @@
 Revision history for Perl extension IO::FD.
+v0.3.1 2023-05-24
+    [tests]
+    - Fix failing send file test on OpenBSD. No sendfile to test!
 
 v0.3.0  2023-05-24
     [features]
