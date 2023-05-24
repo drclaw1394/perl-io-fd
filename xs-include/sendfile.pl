@@ -2,7 +2,7 @@ use Config;
 
 my $output;
 my @vers=split /\./, $Config{osvers};
-if($Config{osname}=~/netbsd/i){
+if($Config{osname}=~/netbsd|openbsd/i){
   print STDERR "sendfile is not implemented on your version of $Config{osname}";
   $output=qq|
 void
