@@ -7,8 +7,8 @@ use Fcntl qw<O_CREAT O_RDONLY O_WRONLY O_RDWR O_NONBLOCK F_SETFL F_GETFL>;
 use Errno qw<EAGAIN>;
 
 use Config;
-my @vers=split /\./, $Config{osvers};
-if($Config{osname}=~/darwin/ and $vers[0]<21){
+my @vers=split /\./, `uname -r`;#$Config{osvers};
+if($Config{osname}=~/darwin/ and $vers[0]<22){
   # TODO: Add Test for mkfifoat
   plan skip_all=>"mkfifo at no available on your version of $Config{osname}";
 
