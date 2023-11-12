@@ -3,6 +3,7 @@ v0.3.3 2023-11-12
   [fixes]
     - Fixed logic error in return value of send/sendto binding.
     - Fixed error checking on uninitialized result code
+    - Fixed link to github using https
 
 
 v0.3.2 2023-07-25
