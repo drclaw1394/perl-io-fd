@@ -105,7 +105,7 @@ my $listen_cb=sub {
     elsif($fd == $accept4_fd){
 	my $flags=0;
 	if($^O=~/darwin/i){
-		$flags=IO::FD::SOCK_NONBLOCK|IO::FD::SOCK_CLOEXEC;
+		$flags=eval "IO::FD::SOCK_NONBLOCK|IO::FD::SOCK_CLOEXEC";
 	}
 	else{
 		$flags=SOCK_NONBLOCK|SOCK_CLOEXEC;
