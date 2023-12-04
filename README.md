@@ -426,15 +426,13 @@ Alias to `IO::FD::fcntl`
 
 ### IO::FD::stat
 
-Likely differences to Perl stat for larger integer values.
-
-TODO: fix this!
+Attempts to replicate string expansion of values for some stat values as
+CORE::stat does. Tests of equality should be done using the `eq` operator
+(just like CORE::stat results) if your Perl is not 64bit.
 
 ### IO::FD::lstat
 
-Likely differences to Perl lstat for larger integer values
-
-TODO: fix this!
+As above.
 
 ### IO::FD::pread
 
