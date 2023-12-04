@@ -155,7 +155,7 @@ ioctl(fd, request, arg)
 
 	CODE:
 		RETVAL=&PL_sv_undef;
-
+    //NOTE: Remember to add 1 to no error return
 	OUTPUT:
 		RETVAL
 
