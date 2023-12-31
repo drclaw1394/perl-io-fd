@@ -159,6 +159,19 @@ ioctl(fd, request, arg)
 	OUTPUT:
 		RETVAL
 
+
+#if defined(IO_FD_OS_DARWIN)|| defined(IO_FD_OS_BSD)
+#define IO_FD_ATIME atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
+#define IO_FD_MTIME mtime=buf.st_mtimespec.tv_sec+buf.st_mtimespec.tv_nsec*1e-9;
+#define IO_FD_CTIME ctime=buf.st_ctimespec.tv_sec+buf.st_ctimespec.tv_nsec*1e-9;
+#endif
+
+#if defined(IO_FD_OS_LINUX)
+#define IO_FD_ATIME atime=buf.st_atim.tv_sec+buf.st_atim.tv_nsec*1e-9;
+#define IO_FD_MTIME mtime=buf.st_mtim.tv_sec+buf.st_mtim.tv_nsec*1e-9;
+#define IO_FD_CTIME ctime=buf.st_ctim.tv_sec+buf.st_ctim.tv_nsec*1e-9;
+#endif
+
 void
 stat(target)
 	SV *target;
@@ -210,36 +223,28 @@ stat(target)
 		if(ret>=0){
 			switch(GIMME_V){
 				case G_ARRAY:
-					//fprintf(stderr , "ARRAY CONTEXT. no error\n");
 
-
-					//atime=buf.st_atimespec.tv_sec+buf.st_atimespec.tv_nsec*1e-9;
-					//mtime=buf.st_mtimespec.tv_sec+buf.st_mtimespec.tv_nsec*1e-9;
-					//ctime=buf.st_ctimespec.tv_sec+buf.st_ctimespec.tv_nsec*1e-9;
 					IO_FD_ATIME
 					IO_FD_MTIME
 					IO_FD_CTIME
 
 
-
-
-
 					//Work through the items in the struct
 					//dSP;
-					EXTEND(SP, 13);
-					mPUSHs(newSViv(buf.st_dev));
-					mPUSHs(newSVuv(buf.st_ino));
-					mPUSHs(newSVuv(buf.st_mode));
-					mPUSHs(newSViv(buf.st_nlink));
-					mPUSHs(newSViv(buf.st_uid));
-					mPUSHs(newSViv(buf.st_gid));
-					mPUSHs(newSViv(buf.st_rdev));
-					mPUSHs(newSViv(buf.st_size));
+					EXTEND(SP, 13);               //macos     bsd       linux
+					mPUSHs(newSVuv(buf.st_dev));  //int32     uint64    uint64
+					mPUSHs(newSVuv(buf.st_ino));  //uint32/64 uint64    uint32/uint64
+					mPUSHs(newSVuv(buf.st_mode)); //uint16    uint16    uint32
+					mPUSHs(newSVuv(buf.st_nlink));//uint16    uint64    uint32
+					mPUSHs(newSVuv(buf.st_uid));  //uint32    uint32    uint32
+					mPUSHs(newSVuv(buf.st_gid));  //uint32    uint32    uint32
+					mPUSHs(newSVuv(buf.st_rdev)); //As per st_dev
+					mPUSHs(newSViv(buf.st_size)); //int64     int64     uint64 
 					mPUSHs(newSViv(atime));
 					mPUSHs(newSViv(mtime));
 					mPUSHs(newSViv(ctime));
-					mPUSHs(newSViv(buf.st_blksize));
-					mPUSHs(newSViv(buf.st_blocks));
+					mPUSHs(newSViv(buf.st_blksize));//int32   int32     int32 
+					mPUSHs(newSViv(buf.st_blocks));//int64    int64     int32
 					XSRETURN(13);
 					break;
 				case G_VOID:
@@ -247,7 +252,6 @@ stat(target)
 					break;
 				case G_SCALAR:
 				default:
-					//fprintf(stderr , "SCALAR CONTEXT. no error\n");
 					mXPUSHs(newSViv(1));
 					XSRETURN(1);
 					break;
