@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 use Test::More;# skip_all=>"IO::FD::stat is currently broken";
 use IO::FD;
 use File::Basename qw<dirname basename>;
@@ -45,7 +47,7 @@ ok symlink($basename, $link), "Create symlink";
 	my @perl=stat __FILE__;
 	my @iofd=IO::FD::stat __FILE__;
 	for(0..$#labels){
-    next if $lables[$_] eq "rdev";
+    		next if $labels[$_] eq "rdev";
 		ok $perl[$_] eq $iofd[$_], $labels[$_];
 	}
 }
@@ -54,7 +56,7 @@ ok symlink($basename, $link), "Create symlink";
 	my @perl=stat STDIN;
 	my @iofd=IO::FD::stat fileno STDIN;
 	for(0..$#labels){
-    next if $lables[$_] eq "rdev";
+    		next if $labels[$_] eq "rdev";
 		ok $perl[$_] eq $iofd[$_], $labels[$_];
 	}
 }
@@ -63,13 +65,14 @@ ok symlink($basename, $link), "Create symlink";
 	my @perl=stat $link;
 	my @iofd=IO::FD::stat $link;
 	for(0..$#labels){
-    next if $lables[$_] eq "rdev";
+		next if $labels[$_] eq "rdev";
 		ok $perl[$_] eq $iofd[$_], $labels[$_];
 	}
 
 	@perl=lstat $link;
 	@iofd=IO::FD::lstat $link;
 	for(0..$#labels){
+		next if $labels[$_] eq "rdev";
 		ok $perl[$_] eq $iofd[$_], $labels[$_];
 	}
 
