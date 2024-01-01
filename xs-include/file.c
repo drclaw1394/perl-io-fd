@@ -232,14 +232,29 @@ stat(target)
 					//Work through the items in the struct
 					//dSP;
 					EXTEND(SP, 13);               //macos     bsd       linux
-					mPUSHs(newSVuv(buf.st_dev));  //int32     uint64    uint64
+          if(buf.st_dev<0){
+                                        //int32     uint64    uint64
+					  mPUSHs(newSViv(buf.st_dev));  
+          }
+          else {
+					  mPUSHs(newSVuv(buf.st_dev));  
+          }
+
+                                      
 					mPUSHs(newSVuv(buf.st_ino));  //uint32/64 uint64    uint32/uint64
 					mPUSHs(newSVuv(buf.st_mode)); //uint16    uint16    uint32
 					mPUSHs(newSVuv(buf.st_nlink));//uint16    uint64    uint32
 					mPUSHs(newSVuv(buf.st_uid));  //uint32    uint32    uint32
 					mPUSHs(newSVuv(buf.st_gid));  //uint32    uint32    uint32
-					mPUSHs(newSVuv(buf.st_rdev)); //As per st_dev
-					mPUSHs(newSViv(buf.st_size)); //int64     int64     uint64 
+          if(buf.st_rdev<0){
+                                        //As per st_dev
+					  mPUSHs(newSViv(buf.st_rdev));  
+          }
+          else {
+					  mPUSHs(newSVuv(buf.st_rdev));  
+          }
+
+					mPUSHs(newSViv(buf.st_size)); //int64     int64     int64 
 					mPUSHs(newSViv(atime));
 					mPUSHs(newSViv(mtime));
 					mPUSHs(newSViv(ctime));

@@ -1,7 +1,7 @@
 Revision history for Perl extension IO::FD.
-v0.3.6 2023-30-12
+v0.3.6 2023-01-02
   [fixes]
-    - fix signed/unsigned output of dev_t from stat (thanks Slaven)
+    - Addressed signed/unsigned output of dev_t from stat (thanks Slaven)
     - Added missing routines to :all export
 
 v0.3.5 2023-12-03
@@ -11,7 +11,7 @@ v0.3.5 2023-12-03
 
 v0.3.4 2023-12-03
   [fixes]
-    - Attempted fix stat and lstat. Passing tests on 64 systems.
+    - Attempted fix stat and lstat. Passing tests on 64bit systems.
 
 v0.3.3 2023-11-12
   [fixes]

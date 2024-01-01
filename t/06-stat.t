@@ -2,6 +2,13 @@ use Test::More;# skip_all=>"IO::FD::stat is currently broken";
 use IO::FD;
 use File::Basename qw<dirname basename>;
 
+############################################################################
+# sub external_stat {                                                      #
+#   my $path=shift;                                                        #
+#   my $command="stat -f '%d %i %Dp %l %u %g %r %z %a %m %c %k %b' $path"; #
+#   split  " ", `$command`;                                                #
+# }                                                                        #
+############################################################################
 
 my @labels=qw<dev      
              ino      
