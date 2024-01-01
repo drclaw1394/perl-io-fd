@@ -222,8 +222,9 @@ stat(target)
 		}
 
     fprintf(stderr, "Size of dev: %d\n",sizeof(buf.st_dev));
-    fprintf(stderr, "Size of size: %d\n",sizeof(buf.st_size));
+    fprintf(stderr, "Size of ino: %d\n",sizeof(buf.st_ino));
     fprintf(stderr, "Size of nlink: %d\n",sizeof(buf.st_nlink));
+    fprintf(stderr, "Size of size: %d\n",sizeof(buf.st_size));
     fprintf(stderr, "Size of blocks: %d\n",sizeof(buf.st_blocks));
 
 		if(ret>=0){
