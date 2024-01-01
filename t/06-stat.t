@@ -25,6 +25,12 @@ my @labels=qw<dev
              blocks   
 >;
 
+# NOTE:
+# core perl  honors the signed/unsigned nature of st_dev. However the st_rdev
+# is of the same type, however core perl always returns as a signed value. I
+# don't know enough about why. All rdev tests are bypassed as IO::FD::stat
+# honours the signed/unsigned st_rdev
+
 #Create a symlink
 my $dir=dirname __FILE__;
 my $basename=basename __FILE__;
@@ -39,6 +45,7 @@ ok symlink($basename, $link), "Create symlink";
 	my @perl=stat __FILE__;
 	my @iofd=IO::FD::stat __FILE__;
 	for(0..$#labels){
+    next if $lables[$_] eq "rdev";
 		ok $perl[$_] eq $iofd[$_], $labels[$_];
 	}
 }
@@ -47,6 +54,7 @@ ok symlink($basename, $link), "Create symlink";
 	my @perl=stat STDIN;
 	my @iofd=IO::FD::stat fileno STDIN;
 	for(0..$#labels){
+    next if $lables[$_] eq "rdev";
 		ok $perl[$_] eq $iofd[$_], $labels[$_];
 	}
 }
@@ -55,6 +63,7 @@ ok symlink($basename, $link), "Create symlink";
 	my @perl=stat $link;
 	my @iofd=IO::FD::stat $link;
 	for(0..$#labels){
+    next if $lables[$_] eq "rdev";
 		ok $perl[$_] eq $iofd[$_], $labels[$_];
 	}
 

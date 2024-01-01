@@ -188,6 +188,7 @@ stat(target)
 		IV atime;
 		IV mtime;
 		IV ctime;
+    SV *tmp;
 	PPCODE:
 
 		if(SvOK(target) && SvIOK(target)){
@@ -220,6 +221,11 @@ stat(target)
 			//Unkown
 		}
 
+    fprintf(stderr, "Size of dev: %d\n",sizeof(buf.st_dev));
+    fprintf(stderr, "Size of size: %d\n",sizeof(buf.st_size));
+    fprintf(stderr, "Size of nlink: %d\n",sizeof(buf.st_nlink));
+    fprintf(stderr, "Size of blocks: %d\n",sizeof(buf.st_blocks));
+
 		if(ret>=0){
 			switch(GIMME_V){
 				case G_ARRAY:
@@ -230,36 +236,143 @@ stat(target)
 
 
 					//Work through the items in the struct
-					//dSP;
+          //
 					EXTEND(SP, 13);               //macos     bsd       linux
+          // ====== st_dev
           if(buf.st_dev<0){
+            // Handle signed value
                                         //int32     uint64    uint64
-					  mPUSHs(newSViv(buf.st_dev));  
+            if(sizeof(IV)<sizeof(buf.st_dev)){
+              if(sizeof(buf.st_dev)<sizeof(long int)){
+                tmp = newSVpvf("%d", buf.st_dev);
+              }
+              else {
+                tmp = newSVpvf("%ld", buf.st_dev);
+              }
+              //mPUSHs(tmp);
+            }
+            else{
+              tmp=newSViv(buf.st_dev);
+            }
           }
           else {
-					  mPUSHs(newSVuv(buf.st_dev));  
+            // Handle unsigned value
+            if(sizeof(UV)<sizeof(buf.st_dev)){
+              if(sizeof(buf.st_dev)<sizeof(long int)){
+                tmp = newSVpvf("%u", buf.st_dev);
+              }
+              else {
+                tmp = newSVpvf("%lu", buf.st_dev);
+              }
+            }
+            else{
+              tmp=newSVuv(buf.st_dev);
+            }
           }
+          mPUSHs(tmp);
 
-                                      
-					mPUSHs(newSVuv(buf.st_ino));  //uint32/64 uint64    uint32/uint64
+          // ==== st_ino                            
+          if(sizeof(UV)<sizeof(buf.st_ino)){
+              tmp = newSVpvf("%lu", buf.st_ino);
+          }
+          else{
+            tmp=newSVuv(buf.st_ino);
+          }
+          mPUSHs(tmp);
+          //mPUSHs(newSVuv(buf.st_ino));  //uint32/64 uint64    uint32/uint64
+
+
+
+          // ==== st_mode
 					mPUSHs(newSVuv(buf.st_mode)); //uint16    uint16    uint32
-					mPUSHs(newSVuv(buf.st_nlink));//uint16    uint64    uint32
+                                        //
+          // ==== st_nlink
+          if(sizeof(UV)<sizeof(buf.st_nlink)){
+              tmp = newSVpvf("%ld", buf.st_nlink);
+          }
+          else{
+            tmp=newSVuv(buf.st_nlink);
+          }
+          mPUSHs(tmp);
+
+          //mPUSHs(newSVuv(buf.st_nlink));//uint16    uint64    uint32
+
+
+          // ==== st_uid
 					mPUSHs(newSVuv(buf.st_uid));  //uint32    uint32    uint32
+                                        //
+          // ==== st_gid
 					mPUSHs(newSVuv(buf.st_gid));  //uint32    uint32    uint32
+                                        //
+          // ==== st_rdev
           if(buf.st_rdev<0){
-                                        //As per st_dev
-					  mPUSHs(newSViv(buf.st_rdev));  
+            // Handle signed value
+                                        //int32     uint64    uint64
+            if(sizeof(IV)<sizeof(buf.st_rdev)){
+              if(sizeof(buf.st_rdev)<sizeof(long int)){
+                tmp = newSVpvf("%d", buf.st_rdev);
+              }
+              else {
+                tmp = newSVpvf("%ld", buf.st_rdev);
+              }
+              //mPUSHs(tmp);
+            }
+            else{
+              tmp=newSViv(buf.st_rdev);
+            }
           }
           else {
-					  mPUSHs(newSVuv(buf.st_rdev));  
+            // Handle unsigned value
+            if(sizeof(UV)<sizeof(buf.st_rdev)){
+              if(sizeof(buf.st_rdev)<sizeof(long int)){
+                tmp = newSVpvf("%u", buf.st_rdev);
+              }
+              else {
+                tmp = newSVpvf("%lu", buf.st_rdev);
+              }
+            }
+            else{
+              tmp=newSVuv(buf.st_rdev);
+            }
           }
+          mPUSHs(tmp);
 
-					mPUSHs(newSViv(buf.st_size)); //int64     int64     int64 
+
+          // ==== st_size
+          if(sizeof(IV)<sizeof(buf.st_size)){
+              tmp = newSVpvf("%ld", buf.st_size);
+          }
+          else{
+            tmp=newSViv(buf.st_size);
+          }
+          mPUSHs(tmp);
+					//mPUSHs(newSViv(buf.st_size)); //int64     int64     int64 
+
+          // ==== st_atime
 					mPUSHs(newSViv(atime));
+
+          // ==== st_mtime
 					mPUSHs(newSViv(mtime));
+
+          // ==== st_ctime
 					mPUSHs(newSViv(ctime));
+
+
+          // ==== st_blksize
 					mPUSHs(newSViv(buf.st_blksize));//int32   int32     int32 
-					mPUSHs(newSViv(buf.st_blocks));//int64    int64     int32
+
+
+          // ==== st_blocks
+          if(sizeof(IV)<sizeof(buf.st_blocks)){
+              tmp = newSVpvf("%ld", buf.st_blocks);
+          }
+          else{
+            tmp=newSViv(buf.st_blocks);
+          }
+          mPUSHs(tmp);
+					//mPUSHs(newSViv(buf.st_blocks));//int64    int64     int32
+
+
 					XSRETURN(13);
 					break;
 				case G_VOID:
