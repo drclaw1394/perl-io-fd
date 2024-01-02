@@ -86,13 +86,13 @@ ok symlink($basename, $link), "Create symlink";
         #STAT a file name.
         my $perl=stat __FILE__;
         my $iofd=IO::FD::stat __FILE__;
-        ok $perl and $iofd, "Scalar path";
+        ok $perl && $iofd, "Scalar path";
 }
 {
         #STAT a filehandle or descriptor
         my $perl=stat STDIN;
         my $iofd=IO::FD::stat fileno STDIN;
-        ok $perl and $iofd, "Scalar fh";
+        ok $perl && $iofd, "Scalar fh";
 }
 
 {
@@ -102,8 +102,8 @@ ok symlink($basename, $link), "Create symlink";
         my $iofd=IO::FD::stat $link;
         ok !$perl == !$iofd, "Scalar symlink";
 
-        my $perl=lstat $link;
-        my $iofd=IO::FD::lstat $link;
+        $perl=lstat $link;
+        $iofd=IO::FD::lstat $link;
         ok !$perl == !$iofd, "Scalar symlink";
 
 }
