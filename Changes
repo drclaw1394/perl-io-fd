@@ -1,9 +1,16 @@
 Revision history for Perl extension IO::FD.
 v0.3.6 2023-01-02
   [fixes]
-    - Addressed signed/unsigned output of dev_t from stat (thanks Slaven)
-    - Note differences in core::stat and IO::FD::stat st_rdev field sign handling
+    - Addressed signed/unsigned output of dev_t from stat (thanks to Slaven for
+      identifying)
+    - Removed testing of stat struct st_rdev due to sign
+    - Documented differences in CORE::stat and IO::FD::stat st_rdev field sign
+      handling
+    - 64bit fields in stat structure on 32bit Perl now are string scalars as
+      POD documented previously.  (st_dev, st_ino, st_nlink, st_rdev, st_size,
+      a/m/c times,  st_blocks)
     - Added missing routines to :all export
+    - Moved time  macros to include file where they are actually used.
 
 v0.3.5 2023-12-03
   [fixes]

@@ -186,9 +186,9 @@ stat(target)
 		char *path;
 		struct stat buf;
 		int len;
-		IV atime;
-		IV mtime;
-		IV ctime;
+		long long atime;
+		long long mtime;
+		long long ctime;
     SV *tmp;
 	PPCODE:
 
@@ -329,14 +329,26 @@ stat(target)
           mPUSHs(tmp);
 					//mPUSHs(newSViv(buf.st_size)); //int64     int64     int64 
 
-          // ==== st_atime
-					mPUSHs(newSViv(atime));
 
-          // ==== st_mtime
-					mPUSHs(newSViv(mtime));
+          // ==== Times
+          if(sizeof(IV)<sizeof(atime)){
+              tmp = newSVpvf("%lld", atime);
+					    mPUSHs(tmp);
+              tmp = newSVpvf("%lld", mtime);
+					    mPUSHs(tmp);
+              tmp = newSVpvf("%lld", ctime);
+					    mPUSHs(tmp);
+          }
+          else{
+            // ==== st_atime
+            mPUSHs(newSViv(atime));
 
-          // ==== st_ctime
-					mPUSHs(newSViv(ctime));
+            // ==== st_mtime
+            mPUSHs(newSViv(mtime));
+
+            // ==== st_ctime
+            mPUSHs(newSViv(ctime));
+          }
 
 
           // ==== st_blksize
