@@ -172,6 +172,7 @@ ioctl(fd, request, arg)
 #define IO_FD_CTIME ctime=buf.st_ctim.tv_sec+buf.st_ctim.tv_nsec*1e-9;
 #endif
 
+
 void
 stat(target)
 	SV *target;
@@ -244,13 +245,7 @@ stat(target)
             // Handle signed value
                                         //int32     uint64    uint64
             if(sizeof(IV)<sizeof(buf.st_dev)){
-              if(sizeof(buf.st_dev)<sizeof(long int)){
-                tmp = newSVpvf("%d", buf.st_dev);
-              }
-              else {
-                tmp = newSVpvf("%ld", buf.st_dev);
-              }
-              //mPUSHs(tmp);
+              tmp = newSVpvf("%lld", buf.st_dev);
             }
             else{
               tmp=newSViv(buf.st_dev);
@@ -259,12 +254,7 @@ stat(target)
           else {
             // Handle unsigned value
             if(sizeof(UV)<sizeof(buf.st_dev)){
-              if(sizeof(buf.st_dev)<sizeof(long int)){
-                tmp = newSVpvf("%u", buf.st_dev);
-              }
-              else {
-                tmp = newSVpvf("%lu", buf.st_dev);
-              }
+              tmp = newSVpvf("%llu", buf.st_dev);
             }
             else{
               tmp=newSVuv(buf.st_dev);
@@ -274,7 +264,7 @@ stat(target)
 
           // ==== st_ino                            
           if(sizeof(UV)<sizeof(buf.st_ino)){
-              tmp = newSVpvf("%lu", buf.st_ino);
+              tmp = newSVpvf("%llu", buf.st_ino);
           }
           else{
             tmp=newSVuv(buf.st_ino);
@@ -289,7 +279,8 @@ stat(target)
                                         //
           // ==== st_nlink
           if(sizeof(UV)<sizeof(buf.st_nlink)){
-              tmp = newSVpvf("%ld", buf.st_nlink);
+            // We know we longer than 32 bits
+              tmp = newSVpvf("%llu", buf.st_nlink);
           }
           else{
             tmp=newSVuv(buf.st_nlink);
@@ -310,13 +301,7 @@ stat(target)
             // Handle signed value
                                         //int32     uint64    uint64
             if(sizeof(IV)<sizeof(buf.st_rdev)){
-              if(sizeof(buf.st_rdev)<sizeof(long int)){
-                tmp = newSVpvf("%d", buf.st_rdev);
-              }
-              else {
-                tmp = newSVpvf("%ld", buf.st_rdev);
-              }
-              //mPUSHs(tmp);
+              tmp = newSVpvf("%lld", buf.st_rdev);
             }
             else{
               tmp=newSViv(buf.st_rdev);
@@ -325,12 +310,7 @@ stat(target)
           else {
             // Handle unsigned value
             if(sizeof(UV)<sizeof(buf.st_rdev)){
-              if(sizeof(buf.st_rdev)<sizeof(long int)){
-                tmp = newSVpvf("%u", buf.st_rdev);
-              }
-              else {
-                tmp = newSVpvf("%lu", buf.st_rdev);
-              }
+              tmp = newSVpvf("%llu", buf.st_rdev);
             }
             else{
               tmp=newSVuv(buf.st_rdev);
@@ -341,7 +321,7 @@ stat(target)
 
           // ==== st_size
           if(sizeof(IV)<sizeof(buf.st_size)){
-              tmp = newSVpvf("%ld", buf.st_size);
+              tmp = newSVpvf("%lld", buf.st_size);
           }
           else{
             tmp=newSViv(buf.st_size);
@@ -365,7 +345,7 @@ stat(target)
 
           // ==== st_blocks
           if(sizeof(IV)<sizeof(buf.st_blocks)){
-              tmp = newSVpvf("%ld", buf.st_blocks);
+              tmp = newSVpvf("%lld", buf.st_blocks);
           }
           else{
             tmp=newSViv(buf.st_blocks);
