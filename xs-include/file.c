@@ -189,7 +189,8 @@ stat(target)
 		long long atime;
 		long long mtime;
 		long long ctime;
-    SV *tmp;
+		char scratch[32]; //
+    		SV *tmp;
 	PPCODE:
 
 		if(SvOK(target) && SvIOK(target)){
@@ -245,7 +246,8 @@ stat(target)
             // Handle signed value
                                         //int32     uint64    uint64
             if(sizeof(IV)<sizeof(buf.st_dev)){
-              tmp = newSVpvf("%lld", buf.st_dev);
+              sprintf(scratch,"%lld", buf.st_dev);
+              tmp = newSVpv(scratch,0);
             }
             else{
               tmp=newSViv(buf.st_dev);
@@ -254,7 +256,8 @@ stat(target)
           else {
             // Handle unsigned value
             if(sizeof(UV)<sizeof(buf.st_dev)){
-              tmp = newSVpvf("%llu", buf.st_dev);
+              sprintf(scratch,"%llu", buf.st_dev);
+              tmp = newSVpv(scratch,0);
             }
             else{
               tmp=newSVuv(buf.st_dev);
@@ -264,7 +267,8 @@ stat(target)
 
           // ==== st_ino                            
           if(sizeof(UV)<sizeof(buf.st_ino)){
-              tmp = newSVpvf("%llu", buf.st_ino);
+              sprintf(scratch,"%llu", buf.st_ino);
+              tmp = newSVpv(scratch,0);
           }
           else{
             tmp=newSVuv(buf.st_ino);
@@ -275,12 +279,13 @@ stat(target)
 
 
           // ==== st_mode
-					mPUSHs(newSVuv(buf.st_mode)); //uint16    uint16    uint32
+	  mPUSHs(newSVuv(buf.st_mode)); //uint16    uint16    uint32
                                         //
           // ==== st_nlink
           if(sizeof(UV)<sizeof(buf.st_nlink)){
-            // We know we longer than 32 bits
-              tmp = newSVpvf("%llu", buf.st_nlink);
+            // We know we are longer than 32 bits
+              sprintf(scratch,"%llu", buf.st_nlink);
+              tmp = newSVpv(scratch,0);
           }
           else{
             tmp=newSVuv(buf.st_nlink);
@@ -291,17 +296,18 @@ stat(target)
 
 
           // ==== st_uid
-					mPUSHs(newSVuv(buf.st_uid));  //uint32    uint32    uint32
+	  mPUSHs(newSVuv(buf.st_uid));  //uint32    uint32    uint32
                                         //
           // ==== st_gid
-					mPUSHs(newSVuv(buf.st_gid));  //uint32    uint32    uint32
+ 	  mPUSHs(newSVuv(buf.st_gid));  //uint32    uint32    uint32
                                         //
           // ==== st_rdev
           if(buf.st_rdev<0){
             // Handle signed value
                                         //int32     uint64    uint64
             if(sizeof(IV)<sizeof(buf.st_rdev)){
-              tmp = newSVpvf("%lld", buf.st_rdev);
+              sprintf(scratch,"%lld", buf.st_rdev);
+              tmp = newSVpv(scratch,0);
             }
             else{
               tmp=newSViv(buf.st_rdev);
@@ -310,7 +316,8 @@ stat(target)
           else {
             // Handle unsigned value
             if(sizeof(UV)<sizeof(buf.st_rdev)){
-              tmp = newSVpvf("%llu", buf.st_rdev);
+              sprintf(scratch,"%llu", buf.st_rdev);
+              tmp = newSVpv(scratch,0);
             }
             else{
               tmp=newSVuv(buf.st_rdev);
@@ -321,7 +328,8 @@ stat(target)
 
           // ==== st_size
           if(sizeof(IV)<sizeof(buf.st_size)){
-              tmp = newSVpvf("%lld", buf.st_size);
+              sprintf(scratch,"%lld", buf.st_size);
+              tmp = newSVpv(scratch,0);
           }
           else{
             tmp=newSViv(buf.st_size);
@@ -332,12 +340,17 @@ stat(target)
 
           // ==== Times
           if(sizeof(IV)<sizeof(atime)){
-              tmp = newSVpvf("%lld", atime);
-					    mPUSHs(tmp);
-              tmp = newSVpvf("%lld", mtime);
-					    mPUSHs(tmp);
-              tmp = newSVpvf("%lld", ctime);
-					    mPUSHs(tmp);
+              sprintf(scratch,"%lld", atime);
+              tmp = newSVpv(scratch,0);
+	      mPUSHs(tmp);
+
+              sprintf(scratch,"%lld", mtime);
+              tmp = newSVpv(scratch,0);
+	      mPUSHs(tmp);
+
+              sprintf(scratch,"%lld", ctime);
+              tmp = newSVpv(scratch,0);
+	      mPUSHs(tmp);
           }
           else{
             // ==== st_atime
@@ -352,12 +365,13 @@ stat(target)
 
 
           // ==== st_blksize
-					mPUSHs(newSViv(buf.st_blksize));//int32   int32     int32 
+	  mPUSHs(newSViv(buf.st_blksize));//int32   int32     int32 
 
 
           // ==== st_blocks
           if(sizeof(IV)<sizeof(buf.st_blocks)){
-              tmp = newSVpvf("%lld", buf.st_blocks);
+              sprintf(scratch,"%lld", buf.st_blocks);
+              tmp = newSVpv(scratch,0);
           }
           else{
             tmp=newSViv(buf.st_blocks);
